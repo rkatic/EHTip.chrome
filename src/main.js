@@ -190,5 +190,5 @@ function put_a( a ) {
 }
 
 init();
-//setTimeout( init, 1 );
+//setTimeout( init, 100 );
 
