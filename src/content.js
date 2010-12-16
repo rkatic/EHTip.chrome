@@ -107,21 +107,22 @@ function recObject( dst, src ) {
 }
 
 var reqProcess = (function(){
-	var uid = 0;
+	var aborted = false, uid = 0;
 	
 	return {
 		send: function( obj, callback, that ) {
 			var id = ++uid;
+			aborted = false;
 			
 			chrome.extension.sendRequest( obj, function() {
-				if ( id === uid ) {
+				if ( !aborted && id === uid ) {
 					callback.apply( that, arguments );
 				}
 			});
 		},
 		
 		abort: function() {
-			++uid;
+			aborted = true;
 		}
 	};
 })();
