@@ -87,7 +87,7 @@ function onMouseMove( event ) {
 }
 
 function onMouseStay() {
-	if ( lastEvent.target ) {
+	if ( lastEvent.target && !isEditable(lastEvent.target) ) {
 		var range = getRangeAtXY( lastEvent.target, lastEvent.clientX, lastEvent.clientY );
 		if ( range ) {
 			//range.expand('word'); // breaks ranges...
@@ -98,6 +98,27 @@ function onMouseStay() {
 			reqProcess.send({ type: "lookup", term: word }, handleLookupResponse);
 		}
 	}
+}
+
+function isEditable( elem ) {
+	var name = elem.tagName.toLowerCase();
+	
+	if ( name === "input" || name === "textarea" ) {
+		return true;
+	}
+	
+	if ( document.designMode && document.designMode.toLowerCase() == "on" ) {
+		return true;
+	}
+	
+	while ( elem ) {
+		if ( elem.isContentEditable ) {
+			return true;
+		}
+		elem = elem.parentNode;
+	}
+	
+	return false;
 }
 
 function recObject( dst, src ) {
