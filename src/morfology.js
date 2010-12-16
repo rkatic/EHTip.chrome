@@ -1,4 +1,4 @@
-utils.module('morfology', function( exports ) {
+utils.ns('morfology', function( exports ) {
 	
 	exports.Transformations = Class({
 		

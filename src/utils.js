@@ -13,7 +13,7 @@ var OP = Object.prototype,
 	protoOf = Object.getPrototypeOf;
 
 
-function module( name, body ) {
+function ns( name, body ) {
 	if ( !body && isFunction(name) ) {
 		body = name;
 		name = null;
@@ -142,7 +142,7 @@ function remove( arr, obj ) {
 }
 
 return {
-	module: module,
+	ns: ns,
 	deepGet: deepGet,
 	deepSet: deepSet,
 	HASH: HASH,

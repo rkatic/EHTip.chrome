@@ -1,4 +1,4 @@
-utils.module('dictionary', function( exports ) {
+utils.ns('dictionary', function( exports ) {
 	
 	var STOREGE = localStorage,
 		undefined;

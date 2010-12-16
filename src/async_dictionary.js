@@ -1,4 +1,4 @@
-utils.module('dictionary.async', function( exports ) {
+utils.ns('dictionary.async', function( exports ) {
 	
 	var undefined;
 	const DB_SIZE = 5 * 1024 * 1024;
