@@ -3,7 +3,7 @@ utils.ns('dictionary.async', function( exports ) {
 	var undefined;
 	const DB_SIZE = 5 * 1024 * 1024;
 	
-	exports.SimpleDictionary = Class({
+	var SimpleDictionary = exports.SimpleDictionary = Class({
 		
 		constructor: function( name ) {
 			this.name = name;
@@ -68,10 +68,10 @@ utils.ns('dictionary.async', function( exports ) {
 		}
 	});
 	
-	exports.Dictionary = Class( exports.SimpleDictionary, {
+	exports.Dictionary = Class( SimpleDictionary, {
 		
 		constructor: function( name, morf ) {
-			this._super( name );
+			SimpleDictionary.call( this, name );
 			
 			this._morfology = ( typeof morf === "string" ) ?
 				morfology.Transformations.fromFile( morf ) :

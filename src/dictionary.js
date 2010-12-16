@@ -3,7 +3,7 @@ utils.ns('dictionary', function( exports ) {
 	var STOREGE = localStorage,
 		undefined;
 	
-	exports.SimpleDictionary = Class({
+	var SimpleDictionary = exports.SimpleDictionary = Class({
 		
 		constructor: function( name ) {
 			this.name = name;
@@ -67,10 +67,10 @@ utils.ns('dictionary', function( exports ) {
 		}
 	});
 	
-	exports.Dictionary = Class( exports.SimpleDictionary, {
+	exports.Dictionary = Class( SimpleDictionary, {
 		
 		constructor: function( name, morf ) {
-			this._super( name );
+			SimpleDictionary.call( this, name );
 			
 			this._morfology = ( typeof morf === "string" ) ?
 				morfology.Transforamtaions.fromFile( morf ) :
