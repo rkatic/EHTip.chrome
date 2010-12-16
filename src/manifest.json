@@ -1,0 +1,16 @@
+{
+	"name": "EHTip",
+	"version": "0.1",
+	"permissions": [
+		"tabs",
+		"unlimitedStorage"
+	],
+	"background_page": "bg.html",
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"css": [],
+			"js": ["content.js"]
+		}
+	]
+}

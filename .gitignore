@@ -1,0 +1,4 @@
+*.db
+*.py[co]
+*.zip
+*.xpi
