@@ -39,7 +39,10 @@ Tooltip.prototype = {
 		this.$box.appendChild( this.$content );
 		
 		this._b_ = this._create('b');
-		this._br_ = this._create('br');
+		this._b_.style.fontWeight = "bold";
+		
+		this._sep_ = this._create('div');
+		this._sep_.style.height = "0.5em";
 		
 		this.$up = this._createArrow("up");
 		this.$down = this._createArrow("down");
@@ -84,7 +87,6 @@ Tooltip.prototype = {
 	_create: function( name ) {
 		var elem = document.createElement( name );
 		var s = elem.style;
-		
 		s.border = "0";
 		s.color = "#000";
 		s.margin = "0";
@@ -100,22 +102,7 @@ Tooltip.prototype = {
 		s.width = "auto";
 		s.direction = "ltr";
 		s.opacity = "inherit";
-		
-		switch ( name ) {
-			case "div":
-				s.display = "block";
-				break;
-			case "a":
-				s.display = "inline";
-				s.textDecoration = "underline";
-				s.fontSize = "11px";
-				elem.target = "_blank"
-				break;
-			case "b":
-				s.fontWeight = "bold";
-				break;
-		}
-		
+		s.display = name === "div" ? "block" : "inline";
 		return elem;
 	},
 	
@@ -131,7 +118,7 @@ Tooltip.prototype = {
 		
 		for ( var i = 0, l = list.length; i < l; ++i ) {
 			if ( i !== 0 ) {
-				this.$content.appendChild( this._br_.cloneNode(false) );
+				this.$content.appendChild( this._sep_.cloneNode(false) );
 			}
 			
 			var b = this._b_.cloneNode(false);
