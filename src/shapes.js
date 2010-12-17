@@ -24,9 +24,9 @@ var shape = {
 		this.hide();
 		this.init.apply( this, arguments );
 	},
-	show: function( rect ) {
+	show: function() {
 		this.visible && this._hide();
-		this._show( rect );
+		this._show.apply( this, arguments );
 		this.visible = true;
 	},
 	hide: function() {
@@ -154,7 +154,9 @@ def("Tooltip", {
 		}
 	},
 	
-	_show: function( rect ) {
+	_show: function( rect, position ) {
+		var up = true; //position === "up";
+		
 		var box = this.$box;
 		var body = this._doc.body;
 		
@@ -176,23 +178,31 @@ def("Tooltip", {
 		var x = Math.round( (rect.left + rect.right) / 2 );
 		
 		var arrow;
-		var boxY = rect.top - 10 - boxH;
+		var boxY = 0;
 		var boxX = x - Math.round( boxW / 2 );
 		
 		var dx = boxX + boxW - bodyW;
 		if ( dx > 0 ) boxX -= dx;
 		if ( boxX < 0 ) boxX = 0;
 		
-		if ( boxY >= 0 ) {
-			arrow = this.$down;
-			arrow.style.top = rect.top - 12 + scrollTop + "px";
-		} else {
-			boxY = rect.bottom + 10;
-			if ( boxY + boxH > bodyH ) {
+		for ( var c = 2; !arrow; up = !up, --c ) {
+			if ( c === 0 ) {
 				boxY = 0;
+				break;
+				
+			} else if ( up ) {
+				boxY = rect.top - 10 - boxH;
+				if ( boxY >= 0 ) {
+					arrow = this.$down;
+					arrow.style.top = rect.top - 12 + scrollTop + "px";
+				}
+				
 			} else {
-				arrow = this.$up;
-				arrow.style.top = rect.bottom + scrollTop + "px";
+				boxY = rect.bottom + 10;
+				if ( boxY + boxH <= bodyH ) {
+					arrow = this.$up;
+					arrow.style.top = rect.bottom + scrollTop + "px";
+				}
 			}
 		}
 		
@@ -242,23 +252,27 @@ def("BoxOutliner", {
 	},
 	
 	_show: function( rect ) {
-		var b = rect2box( this._doc, rect );
+		var s, b = rect2box( this._doc, rect );
 		
-		this.$top.style.top = b.top + 'px';
-		this.$top.style.left = b.left + 'px';
-		this.$top.style.width = b.width + 'px';
+		s = this.$top.style;
+		s.top = b.top + 'px';
+		s.left = b.left + 'px';
+		s.width = b.width + 'px';
 		
-		this.$right.style.top = b.top + 'px';
-		this.$right.style.left = b.left + b.width + 'px';
-		this.$right.style.height = b.height + 'px';
+		s = this.$right.style;
+		s.top = b.top + 'px';
+		s.left = b.left + b.width + 'px';
+		s.height = b.height + 'px';
 		
-		this.$bottom.style.top = b.top + b.height + 'px';
-		this.$bottom.style.left = b.left + 'px';
-		this.$bottom.style.width = b.width + 'px';
+		s = this.$bottom.style;
+		s.top = b.top + b.height + 'px';
+		s.left = b.left + 'px';
+		s.width = b.width + 'px';
 		
-		this.$left.style.top = b.top + 'px';
-		this.$left.style.left = b.left + 'px';
-		this.$left.style.height = b.height + 'px';
+		s = this.$left.style;
+		s.top = b.top + 'px';
+		s.left = b.left + 'px';
+		s.height = b.height + 'px';
 		
 		b = this._doc.body;
 		b.appendChild( this.$top );

@@ -4,8 +4,10 @@ var manifest = JSON.parse( io.readFile('./manifest.json') );
 console.log( manifest.name + ' ' + manifest.version );
 
 var _options = options.init({
-	"tooltip.onStay.enabled": true,
+	"tooltip.onStay": true,
 	"tooltip.onStay.delay": 400,
+	"tooltip.onStay.withShift": false,
+	"tooltip.onStay.withShift.delay": 200,
 	"tooltip.showRect": false,
 	"tooltip.limit": 4,
 	"tooltip.exactsFirst": true,
@@ -158,7 +160,10 @@ function lookup( term, limit, exactsFirst, callback ) {
 	var arr = [],
 		n2go = dicts.length + 1;
 	
-	term = term.trim().replace(/\s+/g, ' ').replace(/^[\-\—]+|[\-\—]+$/g, '');
+	term = term.trim()
+		.replace(/\s+/g, ' ')
+		.replace(/—/g, '-')
+		.replace(/^\-|\-$/g, '');
 	
 	function done( error ) {
 		error && reportError( error );

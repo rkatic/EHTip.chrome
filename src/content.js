@@ -1,9 +1,12 @@
 
 var _options = {},
-	tooltip;
+	tooltip,
 	stayTimeoutId = null,
 	lastRect = null,
 	boxOutliner = null,
+	howerWithShift,
+	stayDelay,
+	hold,
 	lastEvent = {
 		clientX: null,
 		clientY: null,
@@ -28,6 +31,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 
 function handleOptions( options ) {
 	options["tooltip.showRect"] = true;
+	options["tooltip.onStay.withShift"] = true;
 	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
@@ -38,15 +42,15 @@ function handleOptions( options ) {
 		var newValue = options[ name ];
 		
 		switch ( name ) {
-			case "tooltip.onStay.enabled":
+			case "tooltip.onStay":
 				if ( newValue ) {
 					if ( !tooltip ) tooltip = new Tooltip( document );
-					window.addEventListener('mousemove', onMouseMove, false);
-					window.addEventListener('scroll', abort, false);
+					window.addEventListener( 'mousemove', onMouseMove, false );
+					window.addEventListener( 'scroll', abort, false );
 				} else {
 					abort();
-					window.removeEventListener('mousemove', onMouseMove, false);
-					window.removeEventListener('scroll', abort, false);
+					window.removeEventListener( 'mousemove', onMouseMove, false );
+					window.removeEventListener( 'scroll', abort, false );
 				}
 				break;
 			case "tooltip.showRect":
@@ -61,6 +65,11 @@ function handleOptions( options ) {
 		}
 	}
 	
+	howerWithShift = options["tooltip.onStay.withShift"];
+	stayDelay = howerWithShift ?
+		options["tooltip.onStay.withShift.delay"] :
+		options["tooltip.onStay.delay"];
+	
 	_options = options;
 }
 
@@ -72,6 +81,10 @@ function handleLookupResponse( res ) {
 }
 
 function abort() {
+	if ( hold ) {
+		return;
+	}
+	
 	if ( stayTimeoutId ) {
 		clearTimeout( stayTimeoutId );
 		stayTimeoutId = null;
@@ -89,26 +102,27 @@ function abort() {
 	}
 }
 
+
 function onMouseMove( event ) {
-	if ( lastRect
+	if ( hold || lastRect
 		&& lastRect.left <= event.clientX && lastRect.right >= event.clientX
 		&& lastRect.top <= event.clientY && lastRect.bottom >= event.clientY
 	) { return; }
 	
 	abort();
 	
-	if ( _options['tooltip.onStay.enabled'] ) {
+	if ( !howerWithShift || event.shiftKey ) {
 		recObject( lastEvent, event );
-		stayTimeoutId = setTimeout( onMouseStay, _options['tooltip.onStay.delay'] );
+		stayTimeoutId = setTimeout( onMouseStay, stayDelay );
 	}
 }
 
 function onMouseStay() {
 	if ( lastEvent.target && !isEditable(lastEvent.target) ) {
 		var range = getRangeAtXY( lastEvent.target, lastEvent.clientX, lastEvent.clientY );
-		if ( range ) {
+		if ( range && isWord( range.toString() ) ) {
 			//range.expand('word'); // breaks CLientRect...
-			expandRangeByRe( range, reWord );
+			expandRangeByWord( range );
 			var word = range.toString();
 			lastRect = range.getBoundingClientRect();
 			range.detach();
@@ -179,12 +193,12 @@ function getRangeAtXY( parent, x, y ) {
 	var range = document.createRange(),
 		childs = parent.childNodes;
 	
-	for ( var i = 0, child; ( child = childs[i] ); ++i ) {		
-		if ( child.nodeType !== 3 ) {
+	for ( var i = 0, l = childs.length; i < l; ++i ) {	
+		if ( childs[i].nodeType !== 3 ) {
 			continue;
 		}
 		
-		range.selectNodeContents( child );
+		range.selectNodeContents( childs[i] );
 		if ( shrinkRangeToXY( range, x, y ) ) {
 			return range;
 		}
@@ -226,17 +240,47 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 		|| shrinkRangeToXY( range, x, y, node, pivot, b );
 }
 
-var reWord = /^[\w\u00c0-\uFFFF\']+$/;
+var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
+var reWordExclude = /\d/;
 
-function expandRangeByRe( range, re ) {
+function expandRangeByWord( range ) {
 	var node = range.startContainer,
 		str = node.nodeValue,
 		a = range.startOffset,
-		b = a, n = str.length;
+		b = a, n = str.length,
+		c = str[a], pc = charCase(c),
+		cc;
 	
-	 while ( a > 0 && re.test( str[a-1] ) ) --a;
-	 while ( b < n && re.test( str[b] ) ) ++b;
-	 
-	 range.setStart( node, a );
-	 range.setEnd( node, b );
+	for ( ; a > 0; --a ) {
+		c = str[ a - 1 ];
+		if ( reWordExclude.test(c) ) break;
+		cc = charCase( c );
+		if ( !cc && !reWordInclude.test(c) || pc == 1 && cc == -1 ) break;
+		pc = cc;
+	}
+	
+	for ( ; b < n; ++b ) {
+		c = str[ b ];
+		if ( reWordExclude.test(c) ) break;
+		cc = charCase( c );
+		if ( !cc && !reWordInclude.test(c) || pc == -1 && cc == 1 ) break;
+		pc = cc;
+	}
+
+	//while ( a > 0 && re.test( str[a-1] ) ) --a;
+	//while ( b < n && re.test( str[b] ) ) ++b;
+	
+	range.setStart( node, a );
+	range.setEnd( node, b );
+}
+
+function isWord(s) {
+	return reWordInclude.test(s) && !reWordExclude.test(s);
+}
+
+function charCase( c ) {
+	var upper = c.toUpperCase();
+	var lower = c.toLowerCase();
+	return upper === lower ? 0 :
+		c === upper ? 1 : -1;
 }
