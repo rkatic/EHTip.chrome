@@ -81,6 +81,10 @@ utils.ns('dictionary.async', function( exports ) {
 		lookup: function( term, errorCallback, callback ) {
 			var self = this, results = [];
 			
+			if ( !this._morfology ) {
+				return SimpleDictionary.prototype.getDefinitions.apply( this, arguments );
+			}
+			
 			term = term.toLowerCase();
 			
 			function push( term, value, parts ) {
