@@ -6,8 +6,10 @@ console.log( manifest.name + ' ' + manifest.version );
 var _options = options.init({
 	"tooltip.onStay.enabled": true,
 	"tooltip.onStay.delay": 400,
+	"tooltip.showRect": false,
 	"tooltip.limit": 4,
-	"popup.limit": 1000
+	"tooltip.exactsFirst": true,
+	"popup.limit": 0
 });
 
 var dictInfo = {
@@ -111,7 +113,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 			break;
 		
 		case "lookup":
-			lookup( req.term, req.limit ||  _options['tooltip.limit'], send );
+			lookup( req.term, req.limit, req.exactsFirst, send );
 			break;
 		
 		default:
@@ -150,31 +152,36 @@ function reloadDicts( dicts, callback ) {
 }
 
 
-function lookup( term, limit, callback ) {
-	var exact_results = [],
-		other_results = [],
+function lookup( term, limit, exactsFirst, callback ) {
+	var arr = [],
 		n2go = dicts.length + 1;
 	
-	term = term.trim().replace(/\s+/g, '');
+	term = term.trim().replace(/\s+/g, ' ').replace(/^[\-\—]+|[\-\—]+$/g, '');
 	
 	function done( error ) {
 		error && reportError( error );
 		if ( --n2go === 0 ) {
-			callback( exact_results.concat(other_results) );
+			var first = [];
+			if ( exactsFirst ) {
+				for ( var i = 0, l = arr.length; i < l; ++i ) {
+					if ( arr[i][0].term === term ) {
+						first.push( arr[i].shift() );
+					}
+				}
+			}
+			callback( first.concat.apply(first, arr) );
 		}
 	}
 	
 	dicts.forEach(function( dict ) {
 		dict.lookup(term, done, function( results ) {
-			var len = results.length;
-			
-			if ( len === 1 ) {
-				( (results[0].parts || '').length < 2 ? exact_results : other_results ).push( results[0] );
+			if ( limit && results.length > limit ) {
+				results.length = limit;
 				
-			} else if ( len > 1 ) {
-				for ( var i = 0, l = Math.min(len, limit); i < l; ++i ) {
-					other_results.push( results[i] );
-				}
+			}
+			
+			if ( results.length ) {
+				arr.push( results );
 			}
 			
 			done();

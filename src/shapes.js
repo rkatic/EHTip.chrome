@@ -1,20 +1,47 @@
-
-function Tooltip() {
-	this.init();
+;(function(){
+	
+var exports = this.exports || this;
+	
+function def( name, prototype ) {
+	var ctor = function( doc ) {
+		this._doc = doc;
+		this.init.apply( this, arguments );
+	};
+	
+	ctor.prototype = prototype;
+	prototype.constructor = ctor;
+	prototype.__proto__ = shape;
+	
+	exports[ name ] = ctor;
+	return ctor;
 }
 
-;(function(){
+var shape = {
+	init: function( doc ) {
+		
+	},
+	reset: function() {
+		this.hide();
+		this.init.apply( this, arguments );
+	},
+	show: function( rect ) {
+		this.visible && this._hide();
+		this._show( rect );
+		this.visible = true;
+	},
+	hide: function() {
+		if ( this.visible ) {
+			this._hide();
+			this.visible = false;
+		}
+	}
+};
 	
 function detach( node ) {
 	node.parentNode && node.parentNode.removeChild( node );
 }
 
-Tooltip.prototype = {
-	reset: function() {
-		this.$box && this.hide();
-		this.init();
-	},
-	
+def("Tooltip", {
 	init: function() {
 		var s;
 		
@@ -23,7 +50,7 @@ Tooltip.prototype = {
 		this._box_.style.background = "transparent";
 		
 		this.$box = this._box_.cloneNode(false);
-		this.$box.style.opacity = ".97";
+		this.$box.style.opacity = ".95";
 		this.$box.style.zIndex = "99991";
 		
 		this.$content = this._create('div');
@@ -85,7 +112,7 @@ Tooltip.prototype = {
 	},
 	
 	_create: function( name ) {
-		var elem = document.createElement( name );
+		var elem = this._doc.createElement( name );
 		var s = elem.style;
 		s.border = "0";
 		s.color = "#000";
@@ -101,16 +128,9 @@ Tooltip.prototype = {
 		s.textAlign = "left";
 		s.width = "auto";
 		s.direction = "ltr";
-		s.opacity = "inherit";
+		s.visibility = "visible";
 		s.display = name === "div" ? "block" : "inline";
 		return elem;
-	},
-	
-	hide: function() {
-		detach( this.$box );
-		detach( this.$up );
-		detach( this.$down );
-		this.visible = false;
 	},
 	
 	setContent: function( list ) {
@@ -130,13 +150,13 @@ Tooltip.prototype = {
 			this.$content.appendChild( b );
 			
 			t = ': ' + list[i].definitions.join(', ');
-			this.$content.appendChild(  document.createTextNode( t ) );
+			this.$content.appendChild(  this._doc.createTextNode( t ) );
 		}
 	},
 	
-	show: function( rect ) {
+	_show: function( rect ) {
 		var box = this.$box;
-		var body = document.body;
+		var body = this._doc.body;
 		
 		box.style.visibility = "hidden";
 		box.style.top = '0';
@@ -150,8 +170,8 @@ Tooltip.prototype = {
 		var bodyW = body.offsetWidth;
 		var bodyH = body.offsetHeight;
 		
-        var scrollLeft = document.documentElement.scrollLeft + body.scrollLeft;
-        var scrollTop = document.documentElement.scrollTop + body.scrollTop;
+        var scrollLeft = this._doc.documentElement.scrollLeft + body.scrollLeft;
+        var scrollTop = this._doc.documentElement.scrollTop + body.scrollTop;
 		
 		var x = Math.round( (rect.left + rect.right) / 2 );
 		
@@ -181,12 +201,87 @@ Tooltip.prototype = {
 		box.style.visibility = "visible";
 		
 		if ( arrow ) {
-			arrow.style.left = x - 12 + scrollLeft + 'px';;
+			arrow.style.left = x - 12 + scrollLeft + 'px';
 			body.appendChild( arrow );
 		}
-		
-		this.visible = true;
+	},
+	
+	_hide: function() {
+		detach( this.$box );
+		detach( this.$up );
+		detach( this.$down );
 	}
-};
+});
+
+def("BoxOutliner", {
+	init: function( doc, border ) {
+		var t = doc.createElement('div');
+		var s = t.style;
+		s.margin = "0";
+		s.padding = "0";
+		s.position = "absolute";
+		s.background = "transparent";
+		s.display = "block";
+		s.visibility = "visible";
+		s.zIndex = "99990";
+		s.border = "0";
+		s.height = "0";
+		s.width = "0";
+		
+		this.$top = t.cloneNode(false);
+		this.$top.style.borderTop = border;
+		
+		this.$bottom = t.cloneNode(false);
+		this.$bottom.style.borderBottom = border;
+		
+		this.$left = t.cloneNode(false);
+		this.$left.style.borderLeft = border;
+		
+		this.$right = t.cloneNode(false);
+		this.$right.style.borderRight = border;
+	},
+	
+	_show: function( rect ) {
+		var b = rect2box( this._doc, rect );
+		
+		this.$top.style.top = b.top + 'px';
+		this.$top.style.left = b.left + 'px';
+		this.$top.style.width = b.width + 'px';
+		
+		this.$right.style.top = b.top + 'px';
+		this.$right.style.left = b.left + b.width + 'px';
+		this.$right.style.height = b.height + 'px';
+		
+		this.$bottom.style.top = b.top + b.height + 'px';
+		this.$bottom.style.left = b.left + 'px';
+		this.$bottom.style.width = b.width + 'px';
+		
+		this.$left.style.top = b.top + 'px';
+		this.$left.style.left = b.left + 'px';
+		this.$left.style.height = b.height + 'px';
+		
+		b = this._doc.body;
+		b.appendChild( this.$top );
+		b.appendChild( this.$right );
+		b.appendChild( this.$bottom );
+		b.appendChild( this.$left );
+	},
+	
+	_hide: function() {
+		detach( this.$top );
+		detach( this.$right );
+		detach( this.$bottom );
+		detach( this.$left );
+	}
+});
+
+function rect2box( doc, rect ) {
+	return {
+		left: rect.left + doc.documentElement.scrollLeft + doc.body.scrollLeft,
+		top: rect.top + doc.documentElement.scrollTop + doc.body.scrollTop,
+		width: rect.right - rect.left,
+		height: rect.bottom - rect.top
+	};
+}
 
 })();

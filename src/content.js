@@ -3,6 +3,7 @@ var _options = {},
 	tooltip;
 	stayTimeoutId = null,
 	lastRect = null,
+	boxOutliner = null,
 	lastEvent = {
 		clientX: null,
 		clientY: null,
@@ -23,8 +24,11 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 			send();
 	}
 });
-	
+
+
 function handleOptions( options ) {
+	options["tooltip.showRect"] = true;
+	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
 			continue;
@@ -36,7 +40,7 @@ function handleOptions( options ) {
 		switch ( name ) {
 			case "tooltip.onStay.enabled":
 				if ( newValue ) {
-					if ( !tooltip ) tooltip = new Tooltip();
+					if ( !tooltip ) tooltip = new Tooltip( document );
 					window.addEventListener('mousemove', onMouseMove, false);
 					window.addEventListener('scroll', abort, false);
 				} else {
@@ -45,6 +49,15 @@ function handleOptions( options ) {
 					window.removeEventListener('scroll', abort, false);
 				}
 				break;
+			case "tooltip.showRect":
+				if ( newValue && !boxOutliner ) {
+					boxOutliner = new BoxOutliner( document, "1px dashed red" );
+					
+				} else if ( !newValue ) {
+					boxOutliner = null;
+				}
+				break;
+				
 		}
 	}
 	
@@ -70,6 +83,10 @@ function abort() {
 	if ( tooltip && tooltip.visible ) {
 		tooltip.hide();
 	}
+	
+	if ( boxOutliner && boxOutliner.visible ) {
+		boxOutliner.hide();
+	}
 }
 
 function onMouseMove( event ) {
@@ -90,12 +107,21 @@ function onMouseStay() {
 	if ( lastEvent.target && !isEditable(lastEvent.target) ) {
 		var range = getRangeAtXY( lastEvent.target, lastEvent.clientX, lastEvent.clientY );
 		if ( range ) {
-			//range.expand('word'); // breaks ranges...
+			//range.expand('word'); // breaks CLientRect...
 			expandRangeByRe( range, reWord );
 			var word = range.toString();
 			lastRect = range.getBoundingClientRect();
 			range.detach();
-			reqProcess.send({ type: "lookup", term: word }, handleLookupResponse);
+			boxOutliner && boxOutliner.show( lastRect );
+			reqProcess.send(
+				{
+					type: "lookup",
+					term: word,
+					limit: _options["tooltip.limit"],
+					exactsFirst: _options["tooltip.exactsFirst"]
+				},
+				handleLookupResponse
+			);
 		}
 	}
 }
@@ -214,4 +240,3 @@ function expandRangeByRe( range, re ) {
 	 range.setStart( node, a );
 	 range.setEnd( node, b );
 }
-
