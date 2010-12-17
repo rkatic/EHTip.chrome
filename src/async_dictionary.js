@@ -1,7 +1,7 @@
 utils.ns('dictionary.async', function( exports ) {
 	
 	var undefined;
-	const DB_SIZE = 5 * 1024 * 1024;
+	const DB_SIZE = 2 * 1024 * 1024;
 	
 	var SimpleDictionary = exports.SimpleDictionary = Class({
 		
@@ -50,8 +50,8 @@ utils.ns('dictionary.async', function( exports ) {
 			this._dict.updateWithObject( hash, errorCallback, callback );
 		},
 		
-		setDefinitionsFromFile: function( path, errorCallback, callback ) {
-			var lines = utils.splitLines( io.readFile( path ) ),
+		setDefinitionsFromData: function( data, errorCallback, callback ) {
+			var lines = utils.splitLines( data ),
 				obj = utils.HASH(), pos, term, defs, _push = [].push;
 				
 			for ( var i = 0, l = lines.length; i < l; ++i ) {

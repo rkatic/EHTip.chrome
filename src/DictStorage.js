@@ -14,7 +14,7 @@ var SQL = {
 };
 
 function creationCallback( db ) {
-	db.changeVersion( '', 1, createTable );
+	db.changeVersion( '', '1', createTable );
 }
 
 function createTable( t ) {
@@ -134,7 +134,9 @@ var DictStorage = exports.DictStorage = Class({
 				});
 			},
 			errCb,
-			cb
+			function() {
+				cb( keys );
+			}
 		);
 	},
 	
@@ -164,7 +166,7 @@ var DictStorage = exports.DictStorage = Class({
 	},
 	
 	updateWithObject: function( obj, errCb, cb ) {
-		var self = this, sql = SQL.REPLACE;
+		var sql = SQL.REPLACE;
 		
 		this._db.transaction(function( t ) {
 			for ( var key in obj ) {

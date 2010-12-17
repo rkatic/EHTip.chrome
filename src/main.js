@@ -128,12 +128,14 @@ function reloadDicts( dicts, callback ) {
 	
 	function next( error ) {
 		if ( error ) {
+			console.error( error );
 			utils.remove( dicts, dict );
 			delete dictInfo[ dict.name ];
 			dict.free();
-			console.error( error );
+			next();
+			
 		}
-		
+	
 		dict = dicts.shift();
 		if ( !dict ) {
 			callback();
@@ -143,8 +145,8 @@ function reloadDicts( dicts, callback ) {
 		console.log('Reloadin dictionary "' + dict.name + '".')
 		
 		dict.removeAllDefinitions(next, function() {
-			var path = './dicts/' + dict.name + '.dict';
-			dict.setDefinitionsFromFile( path, next, next );
+			var data = io.readFile('./dicts/' + dict.name + '.dict');
+			dict.setDefinitionsFromData( data, next, next );
 		});
 	}
 	
@@ -197,5 +199,5 @@ function put_a( a ) {
 }
 
 init();
-//setTimeout( init, 100 );
+//setTimeout( init, 5000 );
 
