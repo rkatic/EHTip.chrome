@@ -16,6 +16,26 @@ utils.ns('dictionary.async', function( exports ) {
 			});
 		},
 		
+		map: function( terms, errorCallback, callback ) {
+			var results = [];
+			
+			function push( value ) {
+				results.push( value ? JSON.parse(value) : undefined );
+			}
+			
+			this._dict.readTransaction(
+				function( t ) {
+					for ( var i = 0, l = terms.length; i < l; ++i ) {
+						t.getValue( terms[i], push );
+					}
+				},
+				errorCallback,
+				function() {
+					callback( results );
+				}
+			);
+		},
+		
 		setDefinitions: function( term, definitions, errorCallback, callback ) {
 			this._dict.set( term, JSON.stringify( definitions ), errorCallback, callback );
 		},
@@ -80,10 +100,6 @@ utils.ns('dictionary.async', function( exports ) {
 		
 		lookup: function( term, errorCallback, callback ) {
 			var self = this, results = [];
-			
-			if ( !this._morfology ) {
-				return SimpleDictionary.prototype.getDefinitions.apply( this, arguments );
-			}
 			
 			term = term.toLowerCase();
 			
