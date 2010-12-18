@@ -30,6 +30,9 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 
 
 function handleOptions( options ) {
+	hold = false;
+	abort();
+	
 	options["tooltip.showRect"] = true;
 	options["tooltip.onStay.withShift"] = true;
 	
@@ -48,7 +51,6 @@ function handleOptions( options ) {
 					window.addEventListener( 'mousemove', onMouseMove, false );
 					window.addEventListener( 'scroll', abort, false );
 				} else {
-					abort();
 					window.removeEventListener( 'mousemove', onMouseMove, false );
 					window.removeEventListener( 'scroll', abort, false );
 				}
@@ -75,9 +77,32 @@ function handleOptions( options ) {
 
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
-		tooltip.setContent( res );
+		putResultsInTooltip( res );
 		tooltip.show( lastRect );
 	}
+}
+
+function putResultsInTooltip( results ) {
+	var toset = [];
+	
+	for ( var i = 0, l = results.length; i < l; ++i ) {
+		if ( i !== 0 ) {
+			toset.push( tooltip._sep_.cloneNode(false) );
+		}
+		
+		var b = tooltip._b_.cloneNode(false);
+		var t = results[i].term;
+		if ( (results[i].parts || '').length > 1 ) {
+			t = '(' + t + ')';
+		}
+		b.textContent = t;
+		toset.push( b );
+		
+		t = ': ' + results[i].definitions.join(', ');
+		toset.push( document.createTextNode( t ) );
+	}
+	
+	tooltip.setContent( toset );
 }
 
 function abort() {
@@ -92,6 +117,7 @@ function abort() {
 	
 	lastRect = null;
 	reqProcess.abort();
+	shrinkAnimation && shrinkAnimation.stop();
 	
 	if ( tooltip && tooltip.visible ) {
 		tooltip.hide();
@@ -208,6 +234,39 @@ function getRangeAtXY( parent, x, y ) {
 	return null;
 }
 
+var shrinkAnimation = null && (function(){
+	var rects = [],
+		timeoutId,
+		outliner = new BoxOutliner( document, "3px dotted orange" );
+	
+	function play() {
+		var rect = rects.unshift();
+		if ( rect ) {
+			outliner.show( rect );
+			timeoutId = setTimeout( play, 200 );
+		} else {
+			stop();
+		}
+	}
+	
+	function stop() {
+		if ( timeoutId ) {
+			clearTimeout( timeoutId );
+			timeoutId = null;
+		}
+		rects.length = 0;
+		outliner.hide();
+	}
+	
+	return {
+		push: function( rect ) {
+			rects.push( rect );
+			!timeoutId && play();
+		},
+		stop: stop
+	};
+})();
+
 // D&C
 function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 	if ( node ) {
@@ -224,10 +283,13 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 		}
 	}
 	
+	// range.isPointInRange ???
 	var r = range.getBoundingClientRect();
 	if ( r.left > x || r.right < x || r.top > y || r.bottom < y ) {
 		return false;
 	}
+	
+	shrinkAnimation && shrinkAnimation.push( r );
 	
 	var d = b - a;
 	if ( d === 1 ) {

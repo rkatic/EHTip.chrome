@@ -1,23 +1,15 @@
 
 function Class( base, prototype ) {
-	var ctor;
-	
 	if ( typeof base !== "function" ) {
 		prototype = prototype || base;
 		base = null;
 	}
 	
-	if ( prototype && prototype.hasOwnProperty("constructor") ) {
-		ctor = prototype.constructor;
-		
-	} else if ( base ) {
-		ctor = function() {
-			return base.apply( this, arguments );
-		};
-		
-	} else {
-		ctor = function(){};
-	}
+	var ctor = ( prototype && prototype.hasOwnProperty("constructor") ) ?
+		prototype.constructor :
+		( base ) ?
+			function() { return base.apply( this, arguments ); } :
+			function(){};
 	
 	if ( prototype ) {
 		ctor.prototype = prototype;

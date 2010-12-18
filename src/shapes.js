@@ -1,51 +1,83 @@
 ;(function(){
 	
-var exports = this.exports || this;
-	
-function def( name, prototype ) {
-	var ctor = function( doc ) {
-		this._doc = doc;
-		this.init.apply( this, arguments );
-	};
-	
-	ctor.prototype = prototype;
-	prototype.constructor = ctor;
-	prototype.__proto__ = shape;
-	
-	exports[ name ] = ctor;
-	return ctor;
-}
+var exports = this.exports || this,
+	Class = this.Class || this.require("class");
 
-var shape = {
-	init: function( doc ) {
-		
+
+var Shape = Class({
+	constructor: function( document ) {
+		this._doc = document;
+		this._init.apply( this, arguments );
 	},
-	reset: function() {
-		this.hide();
-		this.init.apply( this, arguments );
-	},
+	
 	show: function() {
-		this.visible && this._hide();
+		//this.visible && this._hide();
 		this._show.apply( this, arguments );
 		this.visible = true;
 	},
+	
 	hide: function() {
 		if ( this.visible ) {
 			this._hide();
 			this.visible = false;
 		}
-	}
-};
+	},
+	
+	createElement: function( name ) {
+		var _name_ = '_' + name + '_';
+		
+		if ( _name_ in this ) {
+			return this[_name_].cloneNode(false);
+		}
+		
+		var elem = this._doc.createElement( name );
+		this.resetNode( elem );
+		return elem;
+	},
+	
+	setContent: function( arg ) {
+		var c = this._content;
+		c.innerHTML = '';
+		
+		if ( !arg ) {
+			return;
+		}
+		
+		if ( arg.nodeType ) {
+			c.appendChild( arg );
+			
+		} else {
+			var t = this.visible ? this._doc.createDocumentFragment() : c;
+			
+			for ( var i = 0, l = arg.length; i < l; ++i ) {
+				t.appendChild( arg[i] );
+			}
+			
+			if ( t !== c ) {
+				c.appendChild = t;
+			}
+		}
+	},
+	
+	resetNode: noop,
+	_show: noop,
+	_hide: noop,
+	_init: noop
+});
+
+
+function noop(){}
 	
 function detach( node ) {
 	node.parentNode && node.parentNode.removeChild( node );
 }
 
-def("Tooltip", {
-	init: function() {
+
+exports.Tooltip = Class( Shape, {
+	_init: function() {
 		var s;
 		
-		this._box_ = this._create('div');
+		this._box_ = this.createElement('div');
 		this._box_.style.position = "absolute";
 		this._box_.style.background = "transparent";
 		
@@ -53,8 +85,8 @@ def("Tooltip", {
 		this.$box.style.opacity = ".95";
 		this.$box.style.zIndex = "99991";
 		
-		this.$content = this._create('div');
-		s = this.$content.style;
+		this._content = this.createElement('div');
+		s = this._content.style;
 		s.background = "#ffffbf";
 		s.border = "2px solid #e1c642";
 		s.color = "#000";
@@ -63,13 +95,14 @@ def("Tooltip", {
 		s.zIndex = "99992";
 		s.setProperty && s.setProperty("-webkit-border-radius", "5px", null);
 		s.setAttribute && s.setAttribute("border-radius", "5px");
-		this.$box.appendChild( this.$content );
+		this.$box.appendChild( this._content );
 		
-		this._b_ = this._create('b');
+		this._b_ = this.createElement('b');
 		this._b_.style.fontWeight = "bold";
 		
-		this._sep_ = this._create('div');
+		this._sep_ = this.createElement('div');
 		this._sep_.style.height = "0.5em";
+		this._sep_.background = "transparent";
 		
 		this.$up = this._createArrow("up");
 		this.$down = this._createArrow("down");
@@ -111,8 +144,7 @@ def("Tooltip", {
 		return arrow;
 	},
 	
-	_create: function( name ) {
-		var elem = this._doc.createElement( name );
+	resetNode: function( elem ) {
 		var s = elem.style;
 		s.border = "0";
 		s.color = "#000";
@@ -129,85 +161,80 @@ def("Tooltip", {
 		s.width = "auto";
 		s.direction = "ltr";
 		s.visibility = "visible";
-		s.display = name === "div" ? "block" : "inline";
-		return elem;
-	},
-	
-	setContent: function( list ) {
-		this.$content.innerHTML = '';
-		
-		for ( var i = 0, l = list.length; i < l; ++i ) {
-			if ( i !== 0 ) {
-				this.$content.appendChild( this._sep_.cloneNode(false) );
-			}
-			
-			var b = this._b_.cloneNode(false);
-			var t = list[i].term;
-			if ( (list[i].parts || '').length > 1 ) {
-				t = '(' + t + ')';
-			}
-			b.textContent = t;
-			this.$content.appendChild( b );
-			
-			t = ': ' + list[i].definitions.join(', ');
-			this.$content.appendChild(  this._doc.createTextNode( t ) );
-		}
+		s.display = elem.tagName.toLowerCase() === "div" ? "block" : "inline";
 	},
 	
 	_show: function( rect, position ) {
-		var up = true; //position === "up";
+		var up = position === "up";
+		
+		this.visible && this._hide();
 		
 		var box = this.$box;
-		var body = this._doc.body;
+		var doc = this._doc;
+		var win = doc.defaultView;
+		var body = doc.body;
 		
 		box.style.visibility = "hidden";
-		box.style.top = '0';
-		box.style.left = '0';
+		box.style.top = "0";
+		box.style.left = "0";
 		
 		body.appendChild( box );
 		
-		var boxW = box.offsetWidth;
-		var boxH = box.offsetHeight;
-		
-		var bodyW = body.offsetWidth;
-		var bodyH = body.offsetHeight;
+		var b = {
+			width: box.offsetWidth,
+			height: box.offsetHeight
+		};
 		
         var scrollLeft = this._doc.documentElement.scrollLeft + body.scrollLeft;
         var scrollTop = this._doc.documentElement.scrollTop + body.scrollTop;
 		
 		var x = Math.round( (rect.left + rect.right) / 2 );
 		
-		var arrow;
-		var boxY = 0;
-		var boxX = x - Math.round( boxW / 2 );
+		b.left = x - Math.round( b.width / 2 );
+		b.right = b.left + b.width;
 		
-		var dx = boxX + boxW - bodyW;
-		if ( dx > 0 ) boxX -= dx;
-		if ( boxX < 0 ) boxX = 0;
+		var dx = b.right - body.offsetWidth;
+		if ( dx > 0 ) {
+			b.left -= dx;
+			b.right -= dx;
+		}
+		if ( b.left < 0 ) {
+			b.left = 0;
+			b.right = b.width;
+		}
+		
+		var arrow;
 		
 		for ( var c = 2; !arrow; up = !up, --c ) {
 			if ( c === 0 ) {
-				boxY = 0;
+				b.top = 0;
+				b.bottom = b.height;
 				break;
 				
 			} else if ( up ) {
-				boxY = rect.top - 10 - boxH;
-				if ( boxY >= 0 ) {
+				b.top = rect.top - 10 - b.height;
+				b.bottom = b.top + b.height;
+				if ( b.top >= 0 ) {
 					arrow = this.$down;
 					arrow.style.top = rect.top - 12 + scrollTop + "px";
 				}
 				
 			} else {
-				boxY = rect.bottom + 10;
-				if ( boxY + boxH <= bodyH ) {
+				b.top = rect.bottom + 10;
+				b.bottom = b.top + b.height;
+				if ( b.bottom <= win.innerHeight - 20 ) {
 					arrow = this.$up;
 					arrow.style.top = rect.bottom + scrollTop + "px";
 				}
 			}
+			
+			if ( arrow && c === 2 && rectOverPlugins(b, doc) ) {
+				arrow = null;
+			}
 		}
 		
-		box.style.top = boxY + scrollTop + 'px';
-		box.style.left = boxX + scrollLeft + 'px';
+		box.style.top = b.top + scrollTop + 'px';
+		box.style.left = b.left + scrollLeft + 'px';
 		box.style.visibility = "visible";
 		
 		if ( arrow ) {
@@ -223,20 +250,25 @@ def("Tooltip", {
 	}
 });
 
-def("BoxOutliner", {
-	init: function( doc, border ) {
-		var t = doc.createElement('div');
+exports.BoxOutliner = Class( Shape, {
+	_init: function( doc, border ) {
+		var t = this.createElement('div');
 		var s = t.style;
+		s.top = "0";
+		s.left = "0";
 		s.margin = "0";
 		s.padding = "0";
 		s.position = "absolute";
 		s.background = "transparent";
 		s.display = "block";
 		s.visibility = "visible";
-		s.zIndex = "99990";
 		s.border = "0";
 		s.height = "0";
 		s.width = "0";
+		
+		this.$w = t.cloneNode(false);
+		this.$w.style.zIndex = "99990";
+		this.$w.style.overflow = "visible";
 		
 		this.$top = t.cloneNode(false);
 		this.$top.style.borderTop = border;
@@ -249,53 +281,65 @@ def("BoxOutliner", {
 		
 		this.$right = t.cloneNode(false);
 		this.$right.style.borderRight = border;
+		
+		this.$w.appendChild( this.$top );
+		this.$w.appendChild( this.$bottom );
+		this.$w.appendChild( this.$left );
+		this.$w.appendChild( this.$right );
 	},
 	
-	_show: function( rect ) {
-		var s, b = rect2box( this._doc, rect );
+	_show: function( r ) {
+		var body = this._doc.body
+		var dx = body.scrollLeft;
+		var dy = body.scrollTop;
 		
-		s = this.$top.style;
-		s.top = b.top + 'px';
-		s.left = b.left + 'px';
-		s.width = b.width + 'px';
+		var s = this.$top.style;
+		s.top = r.top + dy + 'px';
+		s.left = r.left + dx + 'px';
+		s.width = r.width + 'px';
 		
 		s = this.$right.style;
-		s.top = b.top + 'px';
-		s.left = b.left + b.width + 'px';
-		s.height = b.height + 'px';
+		s.top = r.top + dy + 'px';
+		s.left = r.right + dx + 'px';
+		s.height = r.height + 'px';
 		
 		s = this.$bottom.style;
-		s.top = b.top + b.height + 'px';
-		s.left = b.left + 'px';
-		s.width = b.width + 'px';
+		s.top = r.bottom + dy + 'px';
+		s.left = r.left + dx + 'px';
+		s.width = r.width + 'px';
 		
 		s = this.$left.style;
-		s.top = b.top + 'px';
-		s.left = b.left + 'px';
-		s.height = b.height + 'px';
+		s.top = r.top + dy + 'px';
+		s.left = r.left + dx + 'px';
+		s.height = r.height + 'px';
 		
-		b = this._doc.body;
-		b.appendChild( this.$top );
-		b.appendChild( this.$right );
-		b.appendChild( this.$bottom );
-		b.appendChild( this.$left );
+		if ( this.$w.parentNode !== body ) {
+			body.appendChild( this.$w );
+		}
 	},
 	
 	_hide: function() {
-		detach( this.$top );
-		detach( this.$right );
-		detach( this.$bottom );
-		detach( this.$left );
+		detach( this.$w );
 	}
 });
 
-function rect2box( doc, rect ) {
-	return {
-		left: rect.left + doc.documentElement.scrollLeft + doc.body.scrollLeft,
-		top: rect.top + doc.documentElement.scrollTop + doc.body.scrollTop,
-		width: rect.right - rect.left,
-		height: rect.bottom - rect.top
-	};
+
+function rectOverPlugins( rect, doc ) {
+	return rectOverAnyOfNode( rect, doc.getElementsByTagName("embed") )
+		|| rectOverAnyOfNode( rect, doc.getElementsByTagName("object") );
+}
+
+
+function rectOverAnyOfNode( a, nodes ) {
+	for ( var i = 0, l = nodes.length; i < l; ++i ) {
+		var b = nodes[i].getBoundingClientRect();
+		if (!( a.left < b.left && a.right < b.left
+			|| a.left > b.right && a.right > b.right
+			|| a.top < b.top && a.bottom < b.top
+			|| a.top > b.bottom && a.bottom > b.bottom
+		)) return true;
+	}
+	return false;
 }
 
 })();
