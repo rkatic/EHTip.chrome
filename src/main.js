@@ -4,9 +4,8 @@ var manifest = JSON.parse( io.readFile('./manifest.json') );
 console.log( manifest.name + ' ' + manifest.version );
 
 var _options = options.init({
-	"tooltip.onStay": true,
+	"tooltip.onStay": 1,
 	"tooltip.onStay.delay": 400,
-	"tooltip.onStay.withShift": false,
 	"tooltip.onStay.withShift.delay": 200,
 	"tooltip.preferedPosition": "up",
 	"tooltip.showRect": false,
@@ -28,9 +27,7 @@ var dictInfo = {
 	}
 };
 
-var dicts = [],
-	_push = dicts.push,
-	_slice = dicts.slice,
+var _dicts = [],
 	
 	initialized = false,
 	onInitialized = new Emitter();
@@ -71,7 +68,7 @@ function init() {
 			new dictionary.async.Dictionary( name, './dicts/' + info.morf + '.aff' ) :
 			new dictionary.async.SimpleDictionary( name );
 		
-		dicts.push( dict );
+		_dicts.push( dict );
 		
 		if ( info.revision > ( oldInfo.revision || 0 ) ) {
 			toReload.push( dict );
@@ -132,11 +129,9 @@ function reloadDicts( dicts, callback ) {
 	function next( error ) {
 		if ( error ) {
 			console.error( error );
-			utils.remove( dicts, dict );
+			utils.remove( _dicts, dict );
 			delete dictInfo[ dict.name ];
-			dict.free();
-			next();
-			
+			dict.free();			
 		}
 	
 		dict = dicts.shift();
@@ -159,7 +154,7 @@ function reloadDicts( dicts, callback ) {
 
 function lookup( term, limit, exactsFirst, callback ) {
 	var arr = [],
-		n2go = dicts.length + 1;
+		n2go = _dicts.length + 1;
 	
 	term = term.trim()
 		.replace(/\s+/g, ' ')
@@ -181,7 +176,7 @@ function lookup( term, limit, exactsFirst, callback ) {
 		}
 	}
 	
-	dicts.forEach(function( dict ) {
+	_dicts.forEach(function( dict ) {
 		dict.lookup(term, done, function( results ) {
 			if ( limit && results.length > limit ) {
 				results.length = limit;

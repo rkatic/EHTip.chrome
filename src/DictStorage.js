@@ -13,8 +13,12 @@ var SQL = {
 	SELECT_PAIRS: "SELECT key, value FROM dict WHERE substr(key, 1, ?) = ?"
 };
 
+function reportError( error ) {
+	console.error( error );
+}
+
 function creationCallback( db ) {
-	db.changeVersion( '', '1', createTable );
+	db.changeVersion( '', '1', createTable, reportError );
 }
 
 function createTable( t ) {
@@ -37,9 +41,11 @@ var DictStorage = exports.DictStorage = Class({
 			'dict.' + name,
 			'',
 			'',
-			( estimatedSize == null ? 2*1024*1024 : estimatedSize ),
-			creationCallback
+			( estimatedSize == null ? 2*1024*1024 : estimatedSize )
+			//, creationCallback
 		);
+		
+		this._db.transaction( createTable, reportError );
 	},
 	
 	reset: function( errCb, cb ) {

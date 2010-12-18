@@ -4,8 +4,8 @@ var _options = {},
 	stayTimeoutId = null,
 	lastRect = null,
 	boxOutliner = null,
-	howerWithShift,
-	stayDelay,
+	stayOnlyWithShift,
+	stayDelays,
 	hold,
 	lastEvent = {
 		clientX: null,
@@ -34,7 +34,6 @@ function handleOptions( options ) {
 	abort();
 	
 	options["tooltip.showRect"] = true;
-	options["tooltip.onStay.withShift"] = true;
 	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
@@ -50,6 +49,12 @@ function handleOptions( options ) {
 					if ( !tooltip ) tooltip = new Tooltip( document );
 					window.addEventListener( 'mousemove', onMouseMove, false );
 					window.addEventListener( 'scroll', abort, false );
+					
+					stayOnlyWithShift = newValue === 1;
+					stayDelays = [
+						options["tooltip.onStay.delay"],
+						options["tooltip.onStay.withShift.delay"]
+					];
 				} else {
 					window.removeEventListener( 'mousemove', onMouseMove, false );
 					window.removeEventListener( 'scroll', abort, false );
@@ -66,11 +71,6 @@ function handleOptions( options ) {
 				
 		}
 	}
-	
-	howerWithShift = options["tooltip.onStay.withShift"];
-	stayDelay = howerWithShift ?
-		options["tooltip.onStay.withShift.delay"] :
-		options["tooltip.onStay.delay"];
 	
 	_options = options;
 }
@@ -137,9 +137,9 @@ function onMouseMove( event ) {
 	
 	abort();
 	
-	if ( !howerWithShift || event.shiftKey ) {
+	if ( !stayOnlyWithShift || event.shiftKey ) {
 		recObject( lastEvent, event );
-		stayTimeoutId = setTimeout( onMouseStay, stayDelay );
+		stayTimeoutId = setTimeout( onMouseStay, stayDelays[event.shiftKey*1] );
 	}
 }
 
