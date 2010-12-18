@@ -78,7 +78,7 @@ function handleOptions( options ) {
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
 		putResultsInTooltip( res );
-		tooltip.show( lastRect );
+		tooltip.show( lastRect, _options["tooltip.preferedPosition"] );
 	}
 }
 
