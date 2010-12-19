@@ -2,7 +2,7 @@
 var _options = {},
 	_tooltip,
 	_stayTimeoutId = null,
-	_lastRect = null,
+	_rect = null,
 	_boxOutliner = null,
 	_stayOnlyWithShift,
 	_selectOnlyWithShift,
@@ -11,7 +11,7 @@ var _options = {},
 	_holdNext,
 	_hold,
 	_ignoreNextMouseUp,
-	_lastEvent = {
+	_event = {
 		clientX: null,
 		clientY: null,
 		target: null,
@@ -102,7 +102,7 @@ function handleLookupResponse( res ) {
 			_holdNext = false;
 		}
 		putResultsInTooltip( res );
-		_tooltip.show( _lastRect, _options["tooltip.preferedPosition"], _noTooltipArrow );
+		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
 	}
 }
 
@@ -159,7 +159,7 @@ function abort() {
 		_stayTimeoutId = null;
 	}
 	
-	_lastRect = null;
+	_rect = null;
 	_holdNext = false;
 	_noTooltipArrow = false;
 	reqProcess.abort();
@@ -195,30 +195,30 @@ function PointRect( x, y, r ) {
 var howerListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
-	if ( _hold || _lastRect
-		&& _lastRect.left <= event.clientX && _lastRect.right >= event.clientX
-		&& _lastRect.top <= event.clientY && _lastRect.bottom >= event.clientY
+	if ( _hold || _rect
+		&& _rect.left <= event.clientX && _rect.right >= event.clientX
+		&& _rect.top <= event.clientY && _rect.bottom >= event.clientY
 	) { return; }
 	
 	abort();
 	
 	if ( !_stayOnlyWithShift || event.shiftKey ) {
-		recObject( _lastEvent, event );
+		recObject( _event, event );
 		_stayTimeoutId = setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
 	}
 }
 };
 
 function onMouseStay() {
-	if ( _lastEvent.target && !isEditable(_lastEvent.target) ) {
-		var range = getRangeAtXY( _lastEvent.target, _lastEvent.clientX, _lastEvent.clientY );
+	if ( _event.target && !isEditable(_event.target) ) {
+		var range = getRangeAtXY( _event.target, _event.clientX, _event.clientY );
 		if ( range && isWord( range.toString() ) ) {
 			//range.expand('word'); // breaks CLientRect...
 			expandRangeByWord( range );
 			var word = range.toString();
-			_lastRect = range.getBoundingClientRect();
+			_rect = range.getBoundingClientRect();
 			range.detach();
-			_boxOutliner && _boxOutliner.show( _lastRect );
+			_boxOutliner && _boxOutliner.show( _rect );
 			lookup( word );
 		}
 	}
@@ -238,7 +238,7 @@ var selectListiners = {
 		return;
 	}
 	if ( event.button === 0 && (!_selectOnlyWithShift || event.shiftKey) ) {
-		recObject( _lastEvent, event );
+		recObject( _event, event );
 		setTimeout( onSelected, 1 );
 	}
 }
@@ -249,10 +249,10 @@ function onSelected() {
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
 		if ( selection.isCollapsed ) {
-			_lastRect = new PointRect( _lastEvent.clientX, _lastEvent.clientY, 10 );
+			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 		} else {
 			var range = selection.getRangeAt(0);
-			_lastRect = range.getBoundingClientRect();
+			_rect = range.getBoundingClientRect();
 			range.detach();
 		}
 		_holdNext = true;
