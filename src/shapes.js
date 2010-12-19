@@ -11,7 +11,6 @@ var Shape = Class({
 	},
 	
 	show: function() {
-		//this.visible && this._hide();
 		this._show.apply( this, arguments );
 		this.visible = true;
 	},

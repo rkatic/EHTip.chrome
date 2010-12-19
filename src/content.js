@@ -1,17 +1,17 @@
 
 var _options = {},
-	tooltip,
-	stayTimeoutId = null,
-	lastRect = null,
-	boxOutliner = null,
-	stayOnlyWithShift,
-	selectOnlyWithShift,
-	stayDelays,
-	noTooltipArrow,
-	holdNext,
-	hold,
-	ignoreNextMouseUp,
-	lastEvent = {
+	_tooltip,
+	_stayTimeoutId = null,
+	_lastRect = null,
+	_boxOutliner = null,
+	_stayOnlyWithShift,
+	_selectOnlyWithShift,
+	_stayDelays,
+	_noTooltipArrow,
+	_holdNext,
+	_hold,
+	_ignoreNextMouseUp,
+	_lastEvent = {
 		clientX: null,
 		clientY: null,
 		target: null,
@@ -34,7 +34,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 
 
 function handleOptions( options ) {
-	hold = false;
+	_hold = false;
 	abort();
 	
 	options["tooltip.showRect"] = true;
@@ -49,36 +49,36 @@ function handleOptions( options ) {
 		
 		switch ( name ) {
 			case "tooltip.onStay":
-				stayOnlyWithShift = ( newValue === 1 );
+				_stayOnlyWithShift = ( newValue === 1 );
 				applyListiners( howerListiners, newValue );
 			
 			case "tooltip.onStay.delay":
 			case "tooltip.onStay.withShift.delay":
-				stayDelays = [
+				_stayDelays = [
 					options["tooltip.onStay.delay"],
 					options["tooltip.onStay.withShift.delay"]
 				];
 				break;
 				
 			case "tooltip.onSelect":
-				selectOnlyWithShift = ( newValue === 1 );
+				_selectOnlyWithShift = ( newValue === 1 );
 				applyListiners( selectListiners, newValue );
 				break;
 			
 			case "tooltip.showRect":
-				if ( newValue && !boxOutliner ) {
-					boxOutliner = new BoxOutliner( document, "1px dashed red" );
+				if ( newValue && !_boxOutliner ) {
+					_boxOutliner = new BoxOutliner( document, "1px dashed red" );
 					
 				} else if ( !newValue ) {
-					boxOutliner = null;
+					_boxOutliner = null;
 				}
 				break;
 				
 		}
 	}
 
-	tooltip = options["tooltip.onStay"] || options["tooltip.onSelect"] ?
-		( tooltip || new Tooltip( document ) ) : null;
+	_tooltip = options["tooltip.onStay"] || options["tooltip.onSelect"] ?
+		( _tooltip || new Tooltip( document ) ) : null;
 	
 	_options = options;
 }
@@ -97,31 +97,31 @@ function lookup( term, callback ) {
 
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
-		if ( holdNext ) {
-			hold = true;
-			holdNext = false;
+		if ( _holdNext ) {
+			_hold = true;
+			_holdNext = false;
 		}
 		putResultsInTooltip( res );
-		tooltip.show( lastRect, _options["tooltip.preferedPosition"], noTooltipArrow );
+		_tooltip.show( _lastRect, _options["tooltip.preferedPosition"], _noTooltipArrow );
 	}
 }
 
 function putResultsInTooltip( results ) {
 	var span, t, b,
-		w = tooltip.createElement('div');
+		w = _tooltip.createElement('div');
 	
-	if ( hold ) {
-		span = tooltip.createElement('span');
+	if ( _hold ) {
+		span = _tooltip.createElement('span');
 		span.style.cursor = "pointer";
-		applyListiners.call( tooltip._content, tooltipOnHoldListiners, true );
+		applyListiners.call( _tooltip._content, tooltipOnHoldListiners, true );
 	}
 	
 	for ( var i = 0, l = results.length; i < l; ++i ) {
 		if ( i !== 0 ) {
-			w.appendChild( tooltip._sep_.cloneNode(false) );
+			w.appendChild( _tooltip._sep_.cloneNode(false) );
 		}
 		
-		b = tooltip._b_.cloneNode(false);
+		b = _tooltip._b_.cloneNode(false);
 		t = results[i].term;
 		if ( (results[i].parts || '').length > 1 ) {
 			t = '(' + t + ')';
@@ -129,7 +129,7 @@ function putResultsInTooltip( results ) {
 		b.textContent = t;
 		w.appendChild( b );
 		
-		if ( hold ) {
+		if ( _hold ) {
 			w.appendChild( document.createTextNode(': ') );
 			var defs = results[i].definitions;
 			for ( var j = 0, n = defs.length; j < n; ++j ) {
@@ -146,31 +146,31 @@ function putResultsInTooltip( results ) {
 		}
 	}
 	
-	tooltip.setContent( w );
+	_tooltip.setContent( w );
 }
 
 function abort() {
-	if ( hold ) {
+	if ( _hold ) {
 		return;
 	}
 	
-	if ( stayTimeoutId ) {
-		clearTimeout( stayTimeoutId );
-		stayTimeoutId = null;
+	if ( _stayTimeoutId ) {
+		clearTimeout( _stayTimeoutId );
+		_stayTimeoutId = null;
 	}
 	
-	lastRect = null;
-	holdNext = false;
-	noTooltipArrow = false;
+	_lastRect = null;
+	_holdNext = false;
+	_noTooltipArrow = false;
 	reqProcess.abort();
 	shrinkAnimation && shrinkAnimation.stop();
 	
-	if ( tooltip && tooltip.visible ) {
-		tooltip.hide();
+	if ( _tooltip && _tooltip.visible ) {
+		_tooltip.hide();
 	}
 	
-	if ( boxOutliner && boxOutliner.visible ) {
-		boxOutliner.hide();
+	if ( _boxOutliner && _boxOutliner.visible ) {
+		_boxOutliner.hide();
 	}
 }
 
@@ -195,30 +195,30 @@ function PointRect( x, y, r ) {
 var howerListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
-	if ( hold || lastRect
-		&& lastRect.left <= event.clientX && lastRect.right >= event.clientX
-		&& lastRect.top <= event.clientY && lastRect.bottom >= event.clientY
+	if ( _hold || _lastRect
+		&& _lastRect.left <= event.clientX && _lastRect.right >= event.clientX
+		&& _lastRect.top <= event.clientY && _lastRect.bottom >= event.clientY
 	) { return; }
 	
 	abort();
 	
-	if ( !stayOnlyWithShift || event.shiftKey ) {
-		recObject( lastEvent, event );
-		stayTimeoutId = setTimeout( onMouseStay, stayDelays[event.shiftKey*1] );
+	if ( !_stayOnlyWithShift || event.shiftKey ) {
+		recObject( _lastEvent, event );
+		_stayTimeoutId = setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
 	}
 }
 };
 
 function onMouseStay() {
-	if ( lastEvent.target && !isEditable(lastEvent.target) ) {
-		var range = getRangeAtXY( lastEvent.target, lastEvent.clientX, lastEvent.clientY );
+	if ( _lastEvent.target && !isEditable(_lastEvent.target) ) {
+		var range = getRangeAtXY( _lastEvent.target, _lastEvent.clientX, _lastEvent.clientY );
 		if ( range && isWord( range.toString() ) ) {
 			//range.expand('word'); // breaks CLientRect...
 			expandRangeByWord( range );
 			var word = range.toString();
-			lastRect = range.getBoundingClientRect();
+			_lastRect = range.getBoundingClientRect();
 			range.detach();
-			boxOutliner && boxOutliner.show( lastRect );
+			_boxOutliner && _boxOutliner.show( _lastRect );
 			lookup( word );
 		}
 	}
@@ -227,18 +227,18 @@ function onMouseStay() {
 
 var selectListiners = {
 "mousedown": function( event ) {
-	if ( hold && !tooltip._content.contains(event.target)  ) {
-		hold = false;
+	if ( _hold && !_tooltip._content.contains(event.target)  ) {
+		_hold = false;
 		abort();
 	}
 },
 "mouseup": function( event ) {
-	if ( ignoreNextMouseUp ) {
-		ignoreNextMouseUp = false;
+	if ( _ignoreNextMouseUp ) {
+		_ignoreNextMouseUp = false;
 		return;
 	}
-	if ( event.button === 0 && (!selectOnlyWithShift || event.shiftKey) ) {
-		recObject( lastEvent, event );
+	if ( event.button === 0 && (!_selectOnlyWithShift || event.shiftKey) ) {
+		recObject( _lastEvent, event );
 		setTimeout( onSelected, 1 );
 	}
 }
@@ -249,13 +249,13 @@ function onSelected() {
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
 		if ( selection.isCollapsed ) {
-			lastRect = new PointRect( lastEvent.clientX, lastEvent.clientY, 10 );
+			_lastRect = new PointRect( _lastEvent.clientX, _lastEvent.clientY, 10 );
 		} else {
 			var range = selection.getRangeAt(0);
-			lastRect = range.getBoundingClientRect();
+			_lastRect = range.getBoundingClientRect();
 			range.detach();
 		}
-		holdNext = true;
+		_holdNext = true;
 		lookup( selected );
 	}
 }
@@ -272,11 +272,11 @@ var tooltipOnHoldListiners = {
 "mousedown": function( event ) {
 	event.preventDefault();
 	event.stopPropagation();
-	ignoreNextMouseUp = true;
+	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
 		if ( event.ctrlKey || event.shiftKey ) {
-			noTooltipArrow = true;
+			_noTooltipArrow = true;
 			lookup( event.target.textContent );
 		
 		} else {
