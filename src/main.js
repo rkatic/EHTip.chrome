@@ -7,7 +7,7 @@ var _options = options.init({
 	"tooltip.onStay": 1,
 	"tooltip.onStay.delay": 400,
 	"tooltip.onStay.withShift.delay": 200,
-	"tooltip.preferedPosition": "up",
+	"tooltip.preferedPosition": "above",
 	"tooltip.limit": 4,
 	"tooltip.exactsFirst": true,
 	"tooltip.onSelect": 2,

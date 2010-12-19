@@ -163,7 +163,7 @@ exports.Tooltip = Class( Shape, {
 	},
 	
 	_show: function( rect, position, noArrow ) {
-		var pos = position.toLowerCase() === "up" ? 1 : -1;
+		var pos = /^(?:up|above)$/i.test( position ) ? 1 : -1;
 		
 		this.visible && this._hide();
 		
