@@ -5,8 +5,12 @@ var _options = {},
 	lastRect = null,
 	boxOutliner = null,
 	stayOnlyWithShift,
+	selectOnlyWithShift,
 	stayDelays,
+	noTooltipArrow,
+	holdNext,
 	hold,
+	ignoreNextMouseUp,
 	lastEvent = {
 		clientX: null,
 		clientY: null,
@@ -45,21 +49,22 @@ function handleOptions( options ) {
 		
 		switch ( name ) {
 			case "tooltip.onStay":
-				if ( newValue ) {
-					if ( !tooltip ) tooltip = new Tooltip( document );
-					window.addEventListener( 'mousemove', onMouseMove, false );
-					window.addEventListener( 'scroll', abort, false );
-					
-					stayOnlyWithShift = newValue === 1;
-					stayDelays = [
-						options["tooltip.onStay.delay"],
-						options["tooltip.onStay.withShift.delay"]
-					];
-				} else {
-					window.removeEventListener( 'mousemove', onMouseMove, false );
-					window.removeEventListener( 'scroll', abort, false );
-				}
+				stayOnlyWithShift = ( newValue === 1 );
+				applyListiners( howerListiners, newValue );
+			
+			case "tooltip.onStay.delay":
+			case "tooltip.onStay.withShift.delay":
+				stayDelays = [
+					options["tooltip.onStay.delay"],
+					options["tooltip.onStay.withShift.delay"]
+				];
 				break;
+				
+			case "tooltip.onSelect":
+				selectOnlyWithShift = ( newValue === 1 );
+				applyListiners( selectListiners, newValue );
+				break;
+			
 			case "tooltip.showRect":
 				if ( newValue && !boxOutliner ) {
 					boxOutliner = new BoxOutliner( document, "1px dashed red" );
@@ -71,38 +76,77 @@ function handleOptions( options ) {
 				
 		}
 	}
+
+	tooltip = options["tooltip.onStay"] || options["tooltip.onSelect"] ?
+		( tooltip || new Tooltip( document ) ) : null;
 	
 	_options = options;
 }
 
+function lookup( term, callback ) {
+	reqProcess.send(
+		{
+			type: "lookup",
+			term: term,
+			limit: _options["tooltip.limit"],
+			exactsFirst: _options["tooltip.exactsFirst"]
+		},
+		callback || handleLookupResponse
+	);
+}
+
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
+		if ( holdNext ) {
+			hold = true;
+			holdNext = false;
+		}
 		putResultsInTooltip( res );
-		tooltip.show( lastRect, _options["tooltip.preferedPosition"] );
+		tooltip.show( lastRect, _options["tooltip.preferedPosition"], noTooltipArrow );
 	}
 }
 
 function putResultsInTooltip( results ) {
-	var toset = [];
+	var span, t, b,
+		w = tooltip.createElement('div');
+	
+	if ( hold ) {
+		span = tooltip.createElement('span');
+		span.style.cursor = "pointer";
+		applyListiners.call( tooltip._content, tooltipOnHoldListiners, true );
+	}
 	
 	for ( var i = 0, l = results.length; i < l; ++i ) {
 		if ( i !== 0 ) {
-			toset.push( tooltip._sep_.cloneNode(false) );
+			w.appendChild( tooltip._sep_.cloneNode(false) );
 		}
 		
-		var b = tooltip._b_.cloneNode(false);
-		var t = results[i].term;
+		b = tooltip._b_.cloneNode(false);
+		t = results[i].term;
 		if ( (results[i].parts || '').length > 1 ) {
 			t = '(' + t + ')';
 		}
 		b.textContent = t;
-		toset.push( b );
+		w.appendChild( b );
 		
-		t = ': ' + results[i].definitions.join(', ');
-		toset.push( document.createTextNode( t ) );
+		if ( hold ) {
+			w.appendChild( document.createTextNode(': ') );
+			var defs = results[i].definitions;
+			for ( var j = 0, n = defs.length; j < n; ++j ) {
+				if ( j !== 0 ) {
+					w.appendChild( document.createTextNode(', ') );
+				}
+				t = span.cloneNode(false);
+				t.textContent = defs[j];
+				w.appendChild( t );
+			}
+		} else {
+			t = ': ' + results[i].definitions.join(', ');
+			w.appendChild( document.createTextNode( t ) );
+		}
 	}
 	
-	tooltip.setContent( toset );
+	tooltip.setContent( w );
 }
 
 function abort() {
@@ -116,6 +160,8 @@ function abort() {
 	}
 	
 	lastRect = null;
+	holdNext = false;
+	noTooltipArrow = false;
 	reqProcess.abort();
 	shrinkAnimation && shrinkAnimation.stop();
 	
@@ -128,8 +174,27 @@ function abort() {
 	}
 }
 
+function applyListiners( map, add ) {
+	var target = this || window; // ES5..
+	var action = add ? 'addEventListener' : 'removeEventListener';
+	for ( var type in map ) {
+		target[ action ]( type, map[type], false );
+	}
+}
 
-function onMouseMove( event ) {
+function PointRect( x, y, r ) {
+	this.left = x - r;
+	this.right = x + r;
+	this.top = y - r;
+	this.bottom = y + r;
+	this.height = r + r;
+	this.width = r + r;
+}
+
+
+var howerListiners = {
+"scroll": abort,
+"mousemove": function( event ) {
 	if ( hold || lastRect
 		&& lastRect.left <= event.clientX && lastRect.right >= event.clientX
 		&& lastRect.top <= event.clientY && lastRect.bottom >= event.clientY
@@ -142,6 +207,7 @@ function onMouseMove( event ) {
 		stayTimeoutId = setTimeout( onMouseStay, stayDelays[event.shiftKey*1] );
 	}
 }
+};
 
 function onMouseStay() {
 	if ( lastEvent.target && !isEditable(lastEvent.target) ) {
@@ -153,17 +219,75 @@ function onMouseStay() {
 			lastRect = range.getBoundingClientRect();
 			range.detach();
 			boxOutliner && boxOutliner.show( lastRect );
-			reqProcess.send(
-				{
-					type: "lookup",
-					term: word,
-					limit: _options["tooltip.limit"],
-					exactsFirst: _options["tooltip.exactsFirst"]
-				},
-				handleLookupResponse
-			);
+			lookup( word );
 		}
 	}
+}
+
+
+var selectListiners = {
+"mousedown": function( event ) {
+	if ( hold && !tooltip._content.contains(event.target)  ) {
+		hold = false;
+		abort();
+	}
+},
+"mouseup": function( event ) {
+	if ( ignoreNextMouseUp ) {
+		ignoreNextMouseUp = false;
+		return;
+	}
+	if ( event.button === 0 && (!selectOnlyWithShift || event.shiftKey) ) {
+		recObject( lastEvent, event );
+		setTimeout( onSelected, 1 );
+	}
+}
+};
+
+function onSelected() {
+	var selection = window.getSelection();
+	var selected = selection.toString();
+	if ( selected && selected.length < 50 ) {
+		if ( selection.isCollapsed ) {
+			lastRect = new PointRect( lastEvent.clientX, lastEvent.clientY, 10 );
+		} else {
+			var range = selection.getRangeAt(0);
+			lastRect = range.getBoundingClientRect();
+			range.detach();
+		}
+		holdNext = true;
+		lookup( selected );
+	}
+}
+
+var tooltipOnHoldListiners = {
+"mouseout": function( event ) {
+	if ( event.target.tagName.toLowerCase() === "span" ) {
+		event.target.style.textDecoration = "none";
+	}
+	if ( event.relatedTarget.tagName.toLowerCase() === "span" ) {
+		event.relatedTarget.style.textDecoration = "underline";
+	}
+},
+"mousedown": function( event ) {
+	event.preventDefault();
+	event.stopPropagation();
+	ignoreNextMouseUp = true;
+	var name = event.target.tagName.toLowerCase();
+	if ( name === "b" || name === "span" ) {
+		if ( event.ctrlKey || event.shiftKey ) {
+			noTooltipArrow = true;
+			lookup( event.target.textContent );
+		
+		} else {
+			setSelection( event.target.textContent );
+		}
+	}
+}
+};
+
+function setSelection( text ) {
+	console.log( text );
 }
 
 function isEditable( elem ) {
@@ -283,7 +407,6 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 		}
 	}
 	
-	// range.isPointInRange ???
 	var r = range.getBoundingClientRect();
 	if ( r.left > x || r.right < x || r.top > y || r.bottom < y ) {
 		return false;

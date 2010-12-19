@@ -42,7 +42,7 @@ var DictStorage = exports.DictStorage = Class({
 			'',
 			'',
 			( estimatedSize == null ? 2*1024*1024 : estimatedSize )
-			//, creationCallback
+			//, creationCallback // bug?
 		);
 		
 		this._db.transaction( createTable, reportError );

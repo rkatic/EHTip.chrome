@@ -11,6 +11,7 @@ var _options = options.init({
 	"tooltip.showRect": false,
 	"tooltip.limit": 4,
 	"tooltip.exactsFirst": true,
+	"tooltip.onSelect": 2,
 	"popup.limit": 0
 });
 

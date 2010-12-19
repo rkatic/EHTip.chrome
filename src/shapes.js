@@ -26,13 +26,12 @@ var Shape = Class({
 	createElement: function( name ) {
 		var _name_ = '_' + name + '_';
 		
-		if ( _name_ in this ) {
-			return this[_name_].cloneNode(false);
+		if ( !this[_name_] ) {
+			this[_name_] = this._doc.createElement( name );
+			this.resetNode( this[_name_] );
 		}
 		
-		var elem = this._doc.createElement( name );
-		this.resetNode( elem );
-		return elem;
+		return this[_name_].cloneNode(false);
 	},
 	
 	setContent: function( arg ) {
@@ -164,7 +163,7 @@ exports.Tooltip = Class( Shape, {
 		s.display = elem.tagName.toLowerCase() === "div" ? "block" : "inline";
 	},
 	
-	_show: function( rect, position ) {
+	_show: function( rect, position, noArrow ) {
 		var up = position === "up";
 		
 		this.visible && this._hide();
@@ -237,7 +236,7 @@ exports.Tooltip = Class( Shape, {
 		box.style.left = b.left + scrollLeft + 'px';
 		box.style.visibility = "visible";
 		
-		if ( arrow ) {
+		if ( arrow && !noArrow ) {
 			arrow.style.left = x - 12 + scrollLeft + 'px';
 			body.appendChild( arrow );
 		}
