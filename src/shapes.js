@@ -163,14 +163,19 @@ exports.Tooltip = Class( Shape, {
 	},
 	
 	_show: function( rect, position, noArrow ) {
-		var up = position === "up";
+		var pos = position.toLowerCase() === "up" ? 1 : -1;
 		
 		this.visible && this._hide();
 		
 		var box = this.$box;
 		var doc = this._doc;
-		var win = doc.defaultView;
 		var body = doc.body;
+		
+		var scrollLeft = body.scrollLeft;
+        var scrollTop = body.scrollTop;
+        //var scrollLeft = doc.documentElement.scrollLeft + body.scrollLeft;
+        //var scrollTop = doc.documentElement.scrollTop + body.scrollTop;
+		
 		
 		box.style.visibility = "hidden";
 		box.style.top = "0";
@@ -183,8 +188,6 @@ exports.Tooltip = Class( Shape, {
 			height: box.offsetHeight
 		};
 		
-        var scrollLeft = this._doc.documentElement.scrollLeft + body.scrollLeft;
-        var scrollTop = this._doc.documentElement.scrollTop + body.scrollTop;
 		
 		var x = Math.round( (rect.left + rect.right) / 2 );
 		
@@ -201,44 +204,53 @@ exports.Tooltip = Class( Shape, {
 			b.right = b.width;
 		}
 		
-		var arrow;
 		
-		for ( var c = 2; !arrow; up = !up, --c ) {
-			if ( c === 0 ) {
-				b.top = 0;
-				b.bottom = b.height;
-				break;
-				
-			} else if ( up ) {
+		var arrow, badNodes;
+		
+		function setRect( pos, last ) {
+			if ( pos === 1 ) {
 				b.top = rect.top - 10 - b.height;
 				b.bottom = b.top + b.height;
-				if ( b.top >= 0 ) {
-					arrow = this.$down;
-					arrow.style.top = rect.top - 12 + scrollTop + "px";
-				}
-				
+				if ( b.top < 0 ) {
+					b.top = 0;
+					return 0;
+				};
+			
 			} else {
 				b.top = rect.bottom + 10;
 				b.bottom = b.top + b.height;
-				if ( b.bottom <= win.innerHeight - 20 ) {
-					arrow = this.$up;
-					arrow.style.top = rect.bottom + scrollTop + "px";
+				if ( b.bottom > ( doc.defaultView.innerHeight - 20 ) ) {
+					b.top = b.height;
+					return 0;
 				}
 			}
 			
-			if ( arrow && c === 2 && rectOverPlugins(b, doc) ) {
-				arrow = null;
+			if ( !last ) {
+				badNodes = badNodes || doc.querySelectorAll('embed, object, iframe');
+				if ( rectOverAnyOfNode( b, badNodes ) ) return 0;
 			}
+			
+			return pos;
 		}
+		
+		pos = setRect( pos ) || setRect( -pos ) || setRect( pos, true );
+		
+		if ( pos && !noArrow ) {
+			if ( pos === 1 ) {
+				arrow = this.$down;
+				arrow.style.top = rect.top - 12 + scrollTop + "px";
+			} else {
+				arrow = this.$up;
+				arrow.style.top = rect.bottom + scrollTop + "px";
+			}
+			arrow.style.left = x - 12 + scrollLeft + 'px';
+			body.appendChild( arrow );
+		}
+		
 		
 		box.style.top = b.top + scrollTop + 'px';
 		box.style.left = b.left + scrollLeft + 'px';
 		box.style.visibility = "visible";
-		
-		if ( arrow && !noArrow ) {
-			arrow.style.left = x - 12 + scrollLeft + 'px';
-			body.appendChild( arrow );
-		}
 	},
 	
 	_hide: function() {
@@ -320,12 +332,6 @@ exports.BoxOutliner = Class( Shape, {
 		detach( this.$w );
 	}
 });
-
-
-function rectOverPlugins( rect, doc ) {
-	return rectOverAnyOfNode( rect, doc.getElementsByTagName("embed") )
-		|| rectOverAnyOfNode( rect, doc.getElementsByTagName("object") );
-}
 
 
 function rectOverAnyOfNode( a, nodes ) {
