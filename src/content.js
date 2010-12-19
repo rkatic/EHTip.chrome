@@ -244,7 +244,7 @@ function onSelected() {
 	var selection = window.getSelection();
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
-		if ( selection.isCollapsed ) {
+		if ( !checkSelection(selection) ) {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 		} else {
 			var range = selection.getRangeAt(0);
@@ -277,13 +277,66 @@ var tooltipOnHoldListiners = {
 		
 		} else {
 			setSelection( event.target.textContent );
+			_hold = false;
+			abort();
 		}
 	}
 }
 };
 
 function setSelection( text ) {
-	console.log( text );
+	var selection = document.getSelection(),
+		selected = selection.toString(),
+		node, relNode, a, b, spaceLeft, spaceRight, value;
+	
+	if ( !selected ) {
+		return;
+	}
+	
+	spaceLeft = selected.match(/^(\s*)/)[1];
+	spaceRight = selected.match(/(\s*)$/)[1];
+	selected = selected.slice( spaceLeft.length, -spaceRight.length );
+	text = spaceLeft + toSameCaseAs( text, selected ) + spaceRight;
+	
+	if ( checkSelection(selection) ) {
+		node = selection.anchorNode;
+		relNode = selection.extentNode;
+		value = node.textContent;
+		a = selection.anchorOffset;
+		b = ( node === relNode ) ? selection.extentOffset : value.length;
+		node.textContent = value.substring(0, a) + text + value.substring(b);
+		selection.collapse( node, a + text.length );
+		
+	} else {
+		node = _event.target;
+		value = node.value;
+		a = node.selectionStart;
+		b = node.selectionEnd;
+		var scrollTop = node.scrollTop;
+		var scrollLeft = node.scrollLeft;
+		node.value = value.substring(0, a) + text + value.substring(b);
+		node.selectionStart = node.selectionEnd = ( a + text.length );
+		node.focus();
+		node.scrollTop = scrollTop;
+		node.scrollLeft = scrollLeft;
+	}
+}
+
+function toSameCaseAs( str, sample ) {
+	if ( sample.toLowerCase() === sample ) {
+		return str.toLowerCase();
+	}
+	if ( sample.toUpperCase() === sample ) {
+		return str.toUpperCase();
+	}
+	if ( sample[0].toUpperCase() === sample[0] ) {
+		return str[0].toUpperCase() + str.substr(1);
+	}
+	return str;
+}
+
+function checkSelection( selection ) {
+	return selection.focusNode.parentNode === _event.target;
 }
 
 function isEditable( elem ) {
