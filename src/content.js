@@ -15,7 +15,8 @@ var _options = {},
 		clientX: null,
 		clientY: null,
 		target: null,
-		button: null
+		button: null,
+		shiftKey: null
 	};
 	
 chrome.extension.sendRequest( { type: "getOptions" }, handleOptions );
@@ -37,8 +38,6 @@ function handleOptions( options ) {
 	_hold = false;
 	abort();
 	
-	options["tooltip.showRect"] = true;
-	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
 			continue;
@@ -49,6 +48,12 @@ function handleOptions( options ) {
 		
 		switch ( name ) {
 			case "tooltip.onStay":
+				if ( newValue && !_boxOutliner ) {
+					_boxOutliner = new BoxOutliner( document, "1px dashed red" );
+					
+				} else if ( !newValue ) {
+					_boxOutliner = null;
+				}
 				_stayOnlyWithShift = ( newValue === 1 );
 				applyListiners( howerListiners, newValue );
 			
@@ -63,15 +68,6 @@ function handleOptions( options ) {
 			case "tooltip.onSelect":
 				_selectOnlyWithShift = ( newValue === 1 );
 				applyListiners( selectListiners, newValue );
-				break;
-			
-			case "tooltip.showRect":
-				if ( newValue && !_boxOutliner ) {
-					_boxOutliner = new BoxOutliner( document, "1px dashed red" );
-					
-				} else if ( !newValue ) {
-					_boxOutliner = null;
-				}
 				break;
 				
 		}
@@ -218,7 +214,7 @@ function onMouseStay() {
 			var word = range.toString();
 			_rect = range.getBoundingClientRect();
 			range.detach();
-			_boxOutliner && _boxOutliner.show( _rect );
+			_event.shiftKey && _boxOutliner.show( _rect );
 			lookup( word );
 		}
 	}
@@ -275,7 +271,7 @@ var tooltipOnHoldListiners = {
 	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
-		if ( event.ctrlKey || event.shiftKey ) {
+		if ( event.shiftKey ) {
 			_noTooltipArrow = true;
 			lookup( event.target.textContent );
 		
