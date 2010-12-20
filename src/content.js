@@ -351,7 +351,7 @@ var tooltipOnHoldListiners = {
 function setSelection( text ) {
 	var selection = document.getSelection(),
 		selected = selection.toString(),
-		node, a, b, spaceLeft, spaceRight, value;
+		node, a, b, t, spaceLeft, spaceRight, value;
 	
 	if ( !selected ) {
 		return;
@@ -359,7 +359,7 @@ function setSelection( text ) {
 	
 	spaceLeft = selected.match(/^(\s*)/)[1];
 	spaceRight = selected.match(/(\s*)$/)[1];
-	selected = selected.slice( spaceLeft.length, -spaceRight.length );
+	selected = selected.slice( spaceLeft.length, -spaceRight.length || selected.length );
 	text = spaceLeft + toSameCaseAs( text, selected ) + spaceRight;
 	
 	if ( checkSelection(selection) ) {
@@ -367,6 +367,11 @@ function setSelection( text ) {
 		value = node.textContent;
 		a = selection.anchorOffset;
 		b = ( node === selection.focusNode ) ? selection.focusOffset : value.length;
+		if ( b < a ) {
+			t = a;
+			a = b;
+			b = t;
+		}
 		node.textContent = value.substring(0, a) + text + value.substring(b);
 		selection.collapse( node, a + text.length );
 		try {
@@ -392,11 +397,11 @@ function toSameCaseAs( str, sample ) {
 	if ( sample.toLowerCase() === sample ) {
 		return str.toLowerCase();
 	}
-	if ( sample.toUpperCase() === sample ) {
+	if ( sample.toUpperCase() === sample && sample.length > 0 ) {
 		return str.toUpperCase();
 	}
 	if ( sample[0].toUpperCase() === sample[0] ) {
-		return str[0].toUpperCase() + str.substr(1);
+		return str[0].toUpperCase() + str.substr(1).toLowerCase();
 	}
 	return str;
 }
