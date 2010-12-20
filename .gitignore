@@ -2,3 +2,5 @@
 *.py[co]
 *.zip
 *.xpi
+*.pem
+*.crx

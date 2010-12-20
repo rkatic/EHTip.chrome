@@ -54,6 +54,7 @@ function handleOptions( options ) {
 				} else if ( !newValue ) {
 					_boxOutliner = null;
 				}
+				
 				_stayOnlyWithShift = ( newValue === 1 );
 				applyListiners( howerListiners, newValue );
 			
