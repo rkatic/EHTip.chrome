@@ -579,24 +579,6 @@ function passRightWordJoiner( str, p ) {
 	return -1;
 }
 
-function expandRangeByWord( range, passJoiner ) {
-	var node = range.startContainer,
-		str = node.nodeValue,
-		a = range.startOffset, b = a;
-	
-	if ( passJoiner ) {
-		a = passLeftWordJoiner( str, a );
-		b = passRightWordJoiner( str, b );
-		if ( a === -1 || b === -1 ) return;
-	}
-	
-	a = wordBound( str, a, -1 ),
-	b = wordBound( str, b, 1 );
-
-	range.setStart( node, a );
-	range.setEnd( node, b );
-}
-
 function isWord(s) {
 	return reWordInclude.test(s) && !reWordExclude.test(s);
 }
@@ -631,6 +613,7 @@ function trisCombinations( a, b, c ) {
 	
 	c && rv.push( b + ' ' + c );
 	a && rv.push( a + ' ' + b );
+	
 	rv.push( b );
 	
 	return rv;
