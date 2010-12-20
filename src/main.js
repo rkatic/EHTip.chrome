@@ -155,7 +155,7 @@ function lookup( term, limit, callback ) {
 	var terms = normalizedTerms( typeof term === "string" ? [term] : term ),
 		dicts = _dicts.concat(),
 		//n = dicts.length + 1, toClean,
-		start = Date.now(),
+		//start = Date.now(),
 		results = [];
 	
 	function error( error ) {
@@ -176,7 +176,7 @@ function lookup( term, limit, callback ) {
 			dicts.shift().lookup( terms, error, collect );
 			
 		} else {
-			console.log( Date.now() - start );
+			//console.log( Date.now() - start );
 			callback( results );
 		}
 	}

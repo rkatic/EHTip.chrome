@@ -277,7 +277,7 @@ function onMouseStay() {
 		if ( term ) {
 			_rect = rect;
 			_event.shiftKey && _boxOutliner.show( boxRect );
-			console.log( term );
+			//console.log( term );
 			lookup( term );
 		}
 	}
