@@ -81,9 +81,23 @@ utils.ns('dictionary.async', function( exports ) {
 			this._dict.erase( null, callback );
 		},
 		
-		lookup: function( term, errorCallback, callback ) {
-			this.getDefinitions(term, errorCallback, function( defs ) {
-				callback( defs ? [{ term: term, definitions: defs }] : [] );
+		lookup: function( terms, errorCallback, callback ) {
+			var dictName = this.name,
+				results = [];
+			
+			this.map(terms, errorCallback, function( arr ) {
+				var results = [];
+				for ( var i = 0, l = arr.length; i < l; ++i ) {
+					if ( arr[i] ) {
+						results.push({
+							term: terms[i],
+							definitions: arr[i],
+							parts: [ terms[i] ],
+							dict: dictName
+						});
+					}
+				}
+				callback( results );
 			});
 		}
 	});
@@ -98,10 +112,10 @@ utils.ns('dictionary.async', function( exports ) {
 				morf;
 		},
 		
-		lookup: function( term, errorCallback, callback ) {
-			var self = this, results = [];
+		lookup: function( terms, errorCallback, callback ) {
+			var self = this, results = [], t;
 			
-			term = term.toLowerCase();
+			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
 			function push( term, value, parts ) {
 				results.push({
@@ -112,23 +126,30 @@ utils.ns('dictionary.async', function( exports ) {
 				});
 			}
 			
-			this._dict.readTransaction(
-				function( t ) {
-					t.getValue(term, function( value ) {
-						if ( value ) {
-							push( term, value, [term] );
-							
-						} else {
-							var done = utils.HASH();
-							self._morfology.generate(term, function( term, parts ) {
-								if ( term in done ) return;
-								done[ term ] = true;
-								t.getValue(term, function( value ) {
-									value && push( term, value, parts );
-								});
+			function procTerm( term ) {
+				term = term.toLowerCase();
+				
+				t.getValue(term, function( value ) {
+					if ( value ) {
+						push( term, value, [term] );
+						
+					} else {
+						var done = utils.HASH();
+						self._morfology.generate(term, function( term, parts ) {
+							if ( term in done ) return;
+							done[ term ] = true;
+							t.getValue(term, function( value ) {
+								value && push( term, value, parts );
 							});
-						}
-					})
+						});
+					}
+				});
+			}
+			
+			this._dict.readTransaction(
+				function( tr ) {
+					t = tr
+					terms.forEach( procTerm );
 				},
 				errorCallback,
 				function() {

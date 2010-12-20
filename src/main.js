@@ -9,7 +9,6 @@ var _options = options.init({
 	"tooltip.onStay.withShift.delay": 200,
 	"tooltip.preferedPosition": "above",
 	"tooltip.limit": 4,
-	"tooltip.exactsFirst": true,
 	"tooltip.onSelect": 2,
 	"popup.limit": 0
 });
@@ -113,7 +112,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 			break;
 		
 		case "lookup":
-			lookup( req.term, req.limit, req.exactsFirst, send );
+			lookup( req.term, req.limit, send );
 			break;
 		
 		default:
@@ -152,47 +151,89 @@ function reloadDicts( dicts, callback ) {
 }
 
 
-function lookup( term, limit, exactsFirst, callback ) {
-	var arr = [],
-		n2go = _dicts.length + 1;
+function lookup( term, limit, callback ) {
+	var terms = normalizedTerms( typeof term === "string" ? [term] : term ),
+		dicts = _dicts.concat(),
+		//n = dicts.length + 1, toClean,
+		start = Date.now(),
+		results = [];
 	
-	term = term.trim()
-		.replace(/\s+/g, ' ')
-		.replace(/—/g, '-')
-		.replace(/^\-|\-$/g, '');
+	function error( error ) {
+		reportError( error );
+		collect();
+	}
 	
-	function done( error ) {
-		error && reportError( error );
-		if ( --n2go === 0 ) {
-			var first = [];
-			if ( exactsFirst ) {
-				for ( var i = 0, l = arr.length; i < l; ++i ) {
-					if ( arr[i][0].term === term ) {
-						first.push( arr[i].shift() );
-					}
-				}
+	function collect( res ) {
+		if ( res ) {
+			if ( limit && res.length > limit ) {
+				res.length = limit;
 			}
-			callback( first.concat.apply(first, arr) );
+			if ( res.length ) {
+				results.push.apply( results, res );
+			}
+		}
+		if ( dicts.length ) {
+			dicts.shift().lookup( terms, error, collect );
+			
+		} else {
+			console.log( Date.now() - start );
+			callback( results );
 		}
 	}
 	
-	_dicts.forEach(function( dict ) {
-		dict.lookup(term, done, function( results ) {
-			if ( limit && results.length > limit ) {
-				results.length = limit;
-				
-			}
-			
-			if ( results.length ) {
-				arr.push( results );
-			}
-			
-			done();
-		});
-	});
+	collect();
 	
-	done();
+	//function done( error ) {
+	//	if ( error ) {
+	//		reportError( error );
+	//		toClean = true;
+	//	}
+	//	if ( --n === 0 ) {
+	//		if ( toClean ) {
+	//			results = results.filter( K );
+	//		}
+	//		var a = [];
+	//		callback( a.concat.apply(a, results) );
+	//	}
+	//}
+	//
+	//dicts.forEach(function( dict, i ) {
+	//	dict.lookup(terms, done, function( res ) {
+	//		if ( limit && res.length > limit ) {
+	//			res.length = limit;
+	//		}
+	//		if ( res.length ) {
+	//			results[i] = res;
+	//		}
+	//		
+	//		done();
+	//	});
+	//});
+	//
+	//done();
 }
+
+function K( obj ) {
+	return !!obj;
+}
+
+function normalizedTerms( terms ) {
+	var t, rv = [];
+	
+	for ( var i = 0, l = terms.length; i < l; ++i ) {
+		t = terms[i].replace(/[\s—\-_]+/g, ' ').trim().toLowerCase();
+		
+		if ( t.indexOf(' ') !== -1 ) {
+			rv.push( t.replace(/ /g, '-'), t, t.replace(/ /g, '') );
+			
+		} else {
+			rv.push( t );
+		}
+	}
+	
+	return rv;
+}
+
 
 function put_a( a ) {
 	var s = '[\n ' + a.map( JSON.stringify ).join(',\n ') + '\n]';

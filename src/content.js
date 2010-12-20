@@ -84,8 +84,7 @@ function lookup( term, callback ) {
 		{
 			type: "lookup",
 			term: term,
-			limit: _options["tooltip.limit"],
-			exactsFirst: _options["tooltip.exactsFirst"]
+			limit: _options["tooltip.limit"]
 		},
 		callback || handleLookupResponse
 	);
@@ -99,6 +98,10 @@ function handleLookupResponse( res ) {
 		}
 		putResultsInTooltip( res );
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
+		
+	} else if ( _hold ) {
+		_hold = false;
+		abort();
 	}
 }
 
@@ -208,14 +211,74 @@ var howerListiners = {
 function onMouseStay() {
 	if ( _event.target && !isEditable(_event.target) ) {
 		var range = getRangeAtXY( _event.target, _event.clientX, _event.clientY );
-		if ( range && isWord( range.toString() ) ) {
-			//range.expand('word'); // breaks CLientRect...
-			expandRangeByWord( range );
-			var word = range.toString();
-			_rect = range.getBoundingClientRect();
-			range.detach();
-			_event.shiftKey && _boxOutliner.show( _rect );
-			lookup( word );
+		if ( !range ) return;
+		
+		var node = range.startContainer;
+		var str = node.textContent;
+		var offset = range.startOffset;
+		var a, b, aj, bj, boxRect, rect;
+		var term, leftWord, rightWord;
+		
+		var overChar = isWord( str[offset] );
+		
+		if ( overChar ) {
+			a = wordBound( str, offset, -1 );
+			b = wordBound( str, offset, 1 );
+			
+			range.setStart( node, a );
+			range.setEnd( node, b );
+			
+			term = range.toString();
+			//term = str.substring( a, b );
+		} else {
+			a = range.startOffset;
+			b = range.endOffset;	
+		}
+		
+		if ( overChar ) {
+			rect = range.getBoundingClientRect();
+		}
+		
+		aj = passLeftWordJoiner( str, a );
+		bj = passRightWordJoiner( str, b );
+		
+		if ( !overChar ) {
+			rect = range.getBoundingClientRect();
+		}
+		
+		if ( aj !== -1 ) {
+			a = wordBound( str, aj, -1 );
+			leftWord = str.substring( a, aj );
+		}
+		
+		if ( bj !== -1 ) {
+			b = wordBound( str, bj, 1 );
+			rightWord = str.substring( bj, b );
+		}
+		
+		if ( overChar ) {
+			boxRect = rect;
+			
+			if ( leftWord || rightWord ) {
+				term = trisCombinations( leftWord, term, rightWord );
+			}
+			
+		} else if ( leftWord && rightWord ) {
+			range.setStart( node, a );
+			range.setEnd( node, b );
+			boxRect = range.getBoundingClientRect();
+			
+			term = leftWord + ' ' + rightWord;
+			
+		}
+		
+		range.detach();
+		
+		if ( term ) {
+			_rect = rect;
+			_event.shiftKey && _boxOutliner.show( boxRect );
+			console.log( term );
+			lookup( term );
 		}
 	}
 }
@@ -306,6 +369,9 @@ function setSelection( text ) {
 		b = ( node === relNode ) ? selection.extentOffset : value.length;
 		node.textContent = value.substring(0, a) + text + value.substring(b);
 		selection.collapse( node, a + text.length );
+		try {
+			node.focus();
+		} catch (e) {}
 		
 	} else {
 		node = _event.target;
@@ -474,36 +540,60 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 		|| shrinkRangeToXY( range, x, y, node, pivot, b );
 }
 
+
 var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
 var reWordExclude = /\d/;
+var reWordJoiner = /^[\s—\-_]+$/;
 
-function expandRangeByWord( range ) {
+function wordBound( str, p, inc ) {
+	var c = str[p],
+		pc = charCase(c), cc,
+		nc = ( inc < 0 ? -1 : 1 ),
+		next = ( inc < 0 ? inc : inc - 1 );
+	
+	for ( ; ; p += inc ) {
+		c = str[ p + next ];
+		if ( !c || reWordExclude.test(c) ) break;
+		cc = charCase( c );
+		if ( !cc && !reWordInclude.test(c) || pc === -cc && cc === nc ) break;
+		pc = cc;
+	}
+	
+	return p;
+}
+
+function passLeftWordJoiner( str, p ) {
+	for ( ; p > 0; --p ) {
+		if ( !reWordJoiner.test( str[p-1] ) ) {
+			return p;
+		}
+	}
+	return -1;
+}
+
+function passRightWordJoiner( str, p ) {
+	for ( var n = str.length; p < n; ++p ) {
+		if ( !reWordJoiner.test( str[p] ) ) {
+			return p;
+		}
+	}
+	return -1;
+}
+
+function expandRangeByWord( range, passJoiner ) {
 	var node = range.startContainer,
 		str = node.nodeValue,
-		a = range.startOffset,
-		b = a, n = str.length,
-		c = str[a], pc = charCase(c),
-		cc;
+		a = range.startOffset, b = a;
 	
-	for ( ; a > 0; --a ) {
-		c = str[ a - 1 ];
-		if ( reWordExclude.test(c) ) break;
-		cc = charCase( c );
-		if ( !cc && !reWordInclude.test(c) || pc == 1 && cc == -1 ) break;
-		pc = cc;
+	if ( passJoiner ) {
+		a = passLeftWordJoiner( str, a );
+		b = passRightWordJoiner( str, b );
+		if ( a === -1 || b === -1 ) return;
 	}
 	
-	for ( ; b < n; ++b ) {
-		c = str[ b ];
-		if ( reWordExclude.test(c) ) break;
-		cc = charCase( c );
-		if ( !cc && !reWordInclude.test(c) || pc == -1 && cc == 1 ) break;
-		pc = cc;
-	}
+	a = wordBound( str, a, -1 ),
+	b = wordBound( str, b, 1 );
 
-	//while ( a > 0 && re.test( str[a-1] ) ) --a;
-	//while ( b < n && re.test( str[b] ) ) ++b;
-	
 	range.setStart( node, a );
 	range.setEnd( node, b );
 }
@@ -512,9 +602,37 @@ function isWord(s) {
 	return reWordInclude.test(s) && !reWordExclude.test(s);
 }
 
+function getRightWord( str, b ) {
+	var a = passRightWordJoiner( str, b );
+	if ( a !== -1 && isWord(str[a]) ) {
+		b = wordBound( str, a, 1 );
+		return str.substring( a, b );
+	}
+	return '';
+}
+
+function getLeftWord( str, a ) {
+	var b = passLeftWordJoiner( str, a );
+	if ( b !== -1 && isWord(str[b-1]) ) {
+		a = wordBound( str, b, -1 );
+		return str.substring(a, b);
+	}
+	return '';
+}
+
 function charCase( c ) {
 	var upper = c.toUpperCase();
 	var lower = c.toLowerCase();
 	return upper === lower ? 0 :
 		c === upper ? 1 : -1;
+}
+
+function trisCombinations( a, b, c ) {
+	var rv = [];
+	
+	c && rv.push( b + ' ' + c );
+	a && rv.push( a + ' ' + b );
+	rv.push( b );
+	
+	return rv;
 }
