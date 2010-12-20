@@ -350,7 +350,7 @@ var tooltipOnHoldListiners = {
 function setSelection( text ) {
 	var selection = document.getSelection(),
 		selected = selection.toString(),
-		node, relNode, a, b, spaceLeft, spaceRight, value;
+		node, a, b, spaceLeft, spaceRight, value;
 	
 	if ( !selected ) {
 		return;
@@ -363,10 +363,9 @@ function setSelection( text ) {
 	
 	if ( checkSelection(selection) ) {
 		node = selection.anchorNode;
-		relNode = selection.extentNode;
 		value = node.textContent;
 		a = selection.anchorOffset;
-		b = ( node === relNode ) ? selection.extentOffset : value.length;
+		b = ( node === selection.focusNode ) ? selection.focusOffset : value.length;
 		node.textContent = value.substring(0, a) + text + value.substring(b);
 		selection.collapse( node, a + text.length );
 		try {
