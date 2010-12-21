@@ -165,9 +165,16 @@ function lookup( term, limit, callback ) {
 	
 	function collect( res ) {
 		if ( res ) {
+			var exacts = [], others = [];
+			for ( var i = 0, l = res.length; i < l; ++i ) {
+				( res[i].transformed ? others : exacts ).push( res[i] );
+			}
+			res = exacts.concat( others );
+			
 			if ( limit && res.length > limit ) {
 				res.length = limit;
 			}
+			
 			if ( res.length ) {
 				results.push.apply( results, res );
 			}

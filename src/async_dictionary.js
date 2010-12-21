@@ -117,12 +117,13 @@ utils.ns('dictionary.async', function( exports ) {
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
-			function push( term, value, parts ) {
+			function push( term, value, parts, tran ) {
 				results.push({
 					dict: self.name,
 					term: term,
 					definitions: JSON.parse( value ),
-					parts: parts
+					parts: parts,
+					transformed: tran
 				});
 			}
 			
@@ -139,7 +140,7 @@ utils.ns('dictionary.async', function( exports ) {
 							if ( term in done ) return;
 							done[ term ] = true;
 							t.getValue(term, function( value ) {
-								value && push( term, value, parts );
+								value && push( term, value, parts, true );
 							});
 						});
 					}

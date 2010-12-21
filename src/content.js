@@ -308,7 +308,7 @@ function onSelected() {
 	var selection = window.getSelection();
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
-		if ( !checkSelection(selection) ) {
+		if ( isInputElement(_event.target) ) {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 		} else {
 			var range = selection.getRangeAt(0);
@@ -330,8 +330,8 @@ var tooltipOnHoldListiners = {
 	}
 },
 "mousedown": function( event ) {
-	event.preventDefault();
-	event.stopPropagation();
+	//event.preventDefault();
+	//event.stopPropagation();
 	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
@@ -362,7 +362,7 @@ function setSelection( text ) {
 	selected = selected.slice( spaceLeft.length, -spaceRight.length || selected.length );
 	text = spaceLeft + toSameCaseAs( text, selected ) + spaceRight;
 	
-	if ( checkSelection(selection) ) {
+	if ( !isInputElement(_event.target) ) {
 		node = selection.anchorNode;
 		value = node.textContent;
 		a = selection.anchorOffset;
@@ -397,7 +397,7 @@ function toSameCaseAs( str, sample ) {
 	if ( sample.toLowerCase() === sample ) {
 		return str.toLowerCase();
 	}
-	if ( sample.toUpperCase() === sample && sample.length > 0 ) {
+	if ( sample.toUpperCase() === sample && sample.length > 1 ) {
 		return str.toUpperCase();
 	}
 	if ( sample[0].toUpperCase() === sample[0] ) {
@@ -406,14 +406,14 @@ function toSameCaseAs( str, sample ) {
 	return str;
 }
 
-function checkSelection( selection ) {
-	return selection.focusNode.parentNode === _event.target;
+function isInputElement( elem ) {
+	var name = elem.nodeName.toLowerCase();
+	return ( name === "input" || name === "textarea" );
 }
 
+
 function isEditable( elem ) {
-	var name = elem.tagName.toLowerCase();
-	
-	if ( name === "input" || name === "textarea" ) {
+	if ( isInputElement(elem) ) {
 		return true;
 	}
 	
