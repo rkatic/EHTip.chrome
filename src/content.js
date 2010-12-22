@@ -1,11 +1,17 @@
-
-var _options = {},
+var _window = window;
+module("content", function( exports, require ) {
+	
+var shapes = require("shapes");
+	
+var	window = _window,
+	document = window.document,
+	_options = {},
 	_tooltip,
 	_stayTimeoutId = null,
 	_rect = null,
 	_boxOutliner = null,
 	_stayOnlyWithShift,
-	_selectOnlyWithShift,
+	_selectMode,
 	_stayDelays,
 	_noTooltipArrow,
 	_holdNext,
@@ -18,7 +24,8 @@ var _options = {},
 		button: null,
 		shiftKey: null
 	};
-	
+
+
 chrome.extension.sendRequest( { type: "getOptions" }, handleOptions );
 
 chrome.extension.onRequest.addListener(function( req, sender, send ) {
@@ -49,14 +56,14 @@ function handleOptions( options ) {
 		switch ( name ) {
 			case "tooltip.onStay":
 				if ( newValue && !_boxOutliner ) {
-					_boxOutliner = new BoxOutliner( document, "1px dashed red" );
+					_boxOutliner = new shapes.BoxOutliner( document, "1px dashed red" );
 					
 				} else if ( !newValue ) {
 					_boxOutliner = null;
 				}
 				
 				_stayOnlyWithShift = ( newValue === 1 );
-				applyListiners( howerListiners, newValue );
+				applyListiners( window, newValue, howerListiners );
 			
 			case "tooltip.onStay.delay":
 			case "tooltip.onStay.withShift.delay":
@@ -67,15 +74,15 @@ function handleOptions( options ) {
 				break;
 				
 			case "tooltip.onSelect":
-				_selectOnlyWithShift = ( newValue === 1 );
-				applyListiners( selectListiners, newValue );
+				_selectMode = newValue;
+				applyListiners( window, newValue, selectListiners );
 				break;
 				
 		}
 	}
 
 	_tooltip = options["tooltip.onStay"] || options["tooltip.onSelect"] ?
-		( _tooltip || new Tooltip( document ) ) : null;
+		( _tooltip || new shapes.Tooltip( document ) ) : null;
 	
 	_options = options;
 }
@@ -100,10 +107,12 @@ function handleLookupResponse( res ) {
 		putResultsInTooltip( res );
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
 		
-	} else if ( _hold ) {
-		_hold = false;
-		abort();
-	}
+		_noTooltipArrow = false;
+	}	
+	//} else if ( _hold ) {
+	//	_hold = false;
+	//	abort();
+	//}
 }
 
 function putResultsInTooltip( results ) {
@@ -113,7 +122,7 @@ function putResultsInTooltip( results ) {
 	if ( _hold ) {
 		span = _tooltip.createElement('span');
 		span.style.cursor = "pointer";
-		applyListiners.call( _tooltip._content, tooltipOnHoldListiners, true );
+		applyListiners( _tooltip._content, true, tooltipOnHoldListiners );
 	}
 	
 	for ( var i = 0, l = results.length; i < l; ++i ) {
@@ -174,37 +183,26 @@ function abort() {
 	}
 }
 
-function applyListiners( map, add ) {
-	var target = this || window; // ES5..
+function applyListiners( target, add, map ) {
 	var action = add ? 'addEventListener' : 'removeEventListener';
 	for ( var type in map ) {
-		target[ action ]( type, map[type], false );
+		target[ action ]( type, map[type], true );
 	}
-}
-
-function PointRect( x, y, r ) {
-	this.left = x - r;
-	this.right = x + r;
-	this.top = y - r;
-	this.bottom = y + r;
-	this.height = r + r;
-	this.width = r + r;
 }
 
 
 var howerListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
-	if ( _hold || _rect
-		&& _rect.left <= event.clientX && _rect.right >= event.clientX
-		&& _rect.top <= event.clientY && _rect.bottom >= event.clientY
-	) { return; }
+	if ( _rect && isRectOverPoint(_rect, event.clientX, event.clientY) ) {
+		return;
+	}
 	
 	abort();
 	
-	if ( !_stayOnlyWithShift || event.shiftKey ) {
+	if ( event.shiftKey || !_hold && !_stayOnlyWithShift ) {
 		recObject( _event, event );
-		_stayTimeoutId = setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
+		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
 	}
 }
 };
@@ -276,6 +274,9 @@ function onMouseStay() {
 		range.detach();
 		
 		if ( term ) {
+			_hold = false;
+			abort();
+			
 			_rect = rect;
 			_event.shiftKey && _boxOutliner.show( boxRect );
 			//console.log( term );
@@ -293,25 +294,29 @@ var selectListiners = {
 	}
 },
 "mouseup": function( event ) {
+	if ( !_selectMode ) {
+		return;
+	}
 	if ( _ignoreNextMouseUp ) {
 		_ignoreNextMouseUp = false;
 		return;
 	}
-	if ( event.button === 0 && (!_selectOnlyWithShift || event.shiftKey) ) {
+	if ( event.button === 0 && (_selectMode > 1 || event.shiftKey) ) {
 		recObject( _event, event );
-		setTimeout( onSelected, 1 );
+		window.setTimeout( onSelected, 1 );
 	}
 }
 };
 
 function onSelected() {
-	var selection = window.getSelection();
+	var selection = getSelectionFrom( _event.target );
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
-		if ( isInputElement(_event.target) ) {
+		if ( isInputElement(_event.target) || _event.target.contentDocument ) {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
+			_noTooltipArrow = true;
 		} else {
-			var range = selection.getRangeAt(0);
+			var range = selection.getRangeAt(0)
 			_rect = range.getBoundingClientRect();
 			range.detach();
 		}
@@ -330,12 +335,12 @@ var tooltipOnHoldListiners = {
 	}
 },
 "mousedown": function( event ) {
-	//event.preventDefault();
-	//event.stopPropagation();
+	event.preventDefault();
+	event.stopPropagation();
 	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
-		if ( event.shiftKey ) {
+		if ( event.ctrlKey ) {
 			_noTooltipArrow = true;
 			lookup( event.target.textContent );
 		
@@ -348,8 +353,14 @@ var tooltipOnHoldListiners = {
 }
 };
 
+function getSelectionFrom( node ) {
+	return node.contentDocument ?
+		node.contentDocument.getSelection() :
+		node.ownerDocument.getSelection();
+}
+
 function setSelection( text ) {
-	var selection = document.getSelection(),
+	var selection = getSelectionFrom( _event.target ),
 		selected = selection.toString(),
 		node, a, b, t, spaceLeft, spaceRight, value;
 	
@@ -481,13 +492,13 @@ function getRangeAtXY( parent, x, y ) {
 var shrinkAnimation = null && (function(){
 	var rects = [],
 		timeoutId,
-		outliner = new BoxOutliner( document, "3px dotted orange" );
+		outliner = new shapes.BoxOutliner( document, "3px dotted orange" );
 	
 	function play() {
 		var rect = rects.unshift();
 		if ( rect ) {
 			outliner.show( rect );
-			timeoutId = setTimeout( play, 200 );
+			timeoutId = window.setTimeout( play, 200 );
 		} else {
 			stop();
 		}
@@ -546,6 +557,62 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 }
 
 
+function isRectOverPoint( r, x, y ) {
+	return !( r.left > x || r.right < x || r.top > y || r.bottom < y );
+}
+
+function MovedRect( r, x, y ) {
+	this.top = r.top + y;
+	this.right = r.right + x;
+	this.bottom = r.bottom + y;
+	this.right = r.right + x;
+	this.height = r.height;
+	this.width = r.width;
+}
+
+function PointRect( x, y, r ) {
+	this.left = x - r;
+	this.right = x + r;
+	this.top = y - r;
+	this.bottom = y + r;
+	this.height = r + r;
+	this.width = r + r;
+}
+
+var globalizedRect = (function(){
+	
+	function proc( doc, frame, p ) {
+		var ok;
+		
+		if ( doc === frame.ownerDocument ) {
+			ok = true;
+			
+		} else {
+			var frames = doc.querySelectorAll('frame, iframe');
+			for ( var i = 0, l = frames.length; !ok, i < l; ++i ) {
+				var contentDoc = frames.contentDocument;
+				if ( contentDoc && proc(contentDoc, frame, p) ) {
+					ok = true;
+				}
+			}
+		}
+		
+		if ( ok ) {
+			p.x += frame.offsetLeft - doc.body.scrollLeft;
+			p.y += frame.offsetTop - doc.body.scrollTop;
+		}
+		
+		return ok;
+	}
+	
+	return function( rect, frame ) {
+		var p = { x: 0, y: 0 };
+		proc( document, frame, p );
+		return new MovedRect( rect, p.x, p.y );
+	};
+	
+})();
+
 var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
 var reWordExclude = /\d/;
 var reWordJoiner = /^[\s—\-_]+$/;
@@ -562,6 +629,10 @@ function wordBound( str, p, inc ) {
 		cc = charCase( c );
 		if ( !cc && !reWordInclude.test(c) || pc === -cc && cc === nc ) break;
 		pc = cc;
+	}
+	
+	if ( str[p] === "'" ) {
+		p -= inc;
 	}
 	
 	return p;
@@ -624,3 +695,5 @@ function trisCombinations( a, b, c ) {
 	
 	return rv;
 }
+
+});

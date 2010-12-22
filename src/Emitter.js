@@ -1,6 +1,10 @@
+module("events", function( exports, require ) {
+
 function Emitter() {
 	this._listeners = [];
 }
+
+exports.Emitter = Emitter;
 
 Emitter.prototype = {
 	
@@ -41,3 +45,5 @@ Emitter.prototype = {
 		return true;
 	}
 };
+	
+});

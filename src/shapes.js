@@ -1,9 +1,5 @@
-;(function(){
+module("shapes", function( exports, require ) {
 	
-var exports = this.exports || this,
-	Class = this.Class || this.require("class");
-
-
 var Shape = Class({
 	constructor: function( document ) {
 		this._doc = document;
@@ -346,4 +342,4 @@ function rectOverAnyOfNode( a, nodes ) {
 	return false;
 }
 
-})();
+});

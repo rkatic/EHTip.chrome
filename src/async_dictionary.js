@@ -1,4 +1,7 @@
-utils.ns('dictionary.async', function( exports ) {
+module('dictionary/async', function( exports, require ) {
+	
+	var storage_async = require("storage/async"),
+		morfology = require("morfology");
 	
 	var undefined;
 	const DB_SIZE = 2 * 1024 * 1024;
@@ -7,7 +10,7 @@ utils.ns('dictionary.async', function( exports ) {
 		
 		constructor: function( name ) {
 			this.name = name;
-			this._dict = storage.async.DictStorage.open( name, DB_SIZE );
+			this._dict = storage_async.DictStorage.open( name, DB_SIZE );
 		},
 		
 		getDefinitions: function( term, errorCallback, callback ) {
@@ -128,22 +131,20 @@ utils.ns('dictionary.async', function( exports ) {
 			}
 			
 			function procTerm( term ) {
-				term = term.toLowerCase();
+				var done = utils.HASH();
 				
 				t.getValue(term, function( value ) {
 					if ( value ) {
 						push( term, value, [term] );
-						
-					} else {
-						var done = utils.HASH();
-						self._morfology.generate(term, function( term, parts ) {
-							if ( term in done ) return;
-							done[ term ] = true;
-							t.getValue(term, function( value ) {
-								value && push( term, value, parts, true );
-							});
-						});
 					}
+					
+					self._morfology.generate(term, function( term, parts ) {
+						if ( term in done ) return;
+						done[ term ] = true;
+						t.getValue(term, function( value ) {
+							value && push( term, value, parts, true );
+						});
+					});
 				});
 			}
 			

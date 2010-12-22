@@ -1,4 +1,4 @@
-utils.ns('io', function( io ) {
+module('io', function( io ) {
 	
 	function xhrError( xhr, url ) {
 		return new Error( "Error on reading '" + url + "' : " + xhr.status + " : " + xhr.statusText );

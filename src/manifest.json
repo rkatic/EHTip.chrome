@@ -11,7 +11,7 @@
 		{
 			"matches": ["<all_urls>"],
 			"css": [],
-			"js": ["class.js", "shapes.js", "content.js"],
+			"js": ["base.js", "shapes.js", "content.js"],
 			"all_frames": true
 		}
 	]

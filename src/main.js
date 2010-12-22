@@ -1,7 +1,18 @@
 //localStorage.clear();
+var require;
+module('', function(_, r){ require = r; });
+
+var utils = require("utils"),
+	io = require("io"),
+	options = require("options"),
+	storage_async = require("dictionary/async"),
+	dictionary_async = require("dictionary/async"),
+	Emitter = require("events").Emitter;
+
 
 var manifest = JSON.parse( io.readFile('./manifest.json') );
 console.log( manifest.name + ' ' + manifest.version );
+
 
 var _options = options.init({
 	"tooltip.onStay": 1,
@@ -64,8 +75,8 @@ function init() {
 		var info = dictInfo[ name ];
 		var oldInfo = oldDictInfo[ name ] || {};
 		var dict = info.morf ?
-			new dictionary.async.Dictionary( name, './dicts/' + info.morf + '.aff' ) :
-			new dictionary.async.SimpleDictionary( name );
+			new dictionary_async.Dictionary( name, './dicts/' + info.morf + '.aff' ) :
+			new dictionary_async.SimpleDictionary( name );
 		
 		_dicts.push( dict );
 		
@@ -77,7 +88,7 @@ function init() {
 	}
 	
 	for ( var name in oldDictInfo ) {
-		dictionary.async.DictStorage.erase( name );
+		storage_async.DictStorage.erase( name );
 	}
 
 	if ( toReload ) {

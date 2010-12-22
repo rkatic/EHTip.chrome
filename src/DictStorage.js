@@ -1,4 +1,4 @@
-utils.ns('storage.async', function( exports ) {
+module('storage/async', function( exports ) {
 
 var SQL = {
 	CREATE : "CREATE TABLE IF NOT EXISTS dict(key TEXT UNIQUE, value TEXT)",
