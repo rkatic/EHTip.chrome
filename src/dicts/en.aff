@@ -1,6 +1,8 @@
 TRY esianrtolcdugmphbyfvkwzESIANRTOLCDUGMPHBYFVKWZ'
 
-PFX (re|in|un|de|dis|con|pro).
+PFX (re|in|un|de|dis|con|pro)
+
+SFX ('.*)
 
 SFX (ive) e
 SFX [^e](ive)
@@ -16,7 +18,7 @@ SFX [^ey](ens)
 SFX (ieth) y
 SFX [^y](th)
 
-SFX .(ly)
+SFX (ly)
 
 SFX (ing) e
 SFX [^e](ing) 
@@ -53,10 +55,10 @@ SFX [^aeiou](iness)
 SFX [aeiou]y(ness)
 SFX [^y](ness)
 
-SFX .(\'s)
+SFX (\'s)
 
 SFX [^aeiou](able)
 SFX ee(able)
 SFX [^aeiou]e(able)
 
-SFX .(ment)
+SFX (ment)

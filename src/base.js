@@ -3,9 +3,11 @@ var module = (function(){
 	
 	var _defined = {};
 	
-	function resolve( base, path ) {
-		var a = base.split('/'),
+	function resolve( curr, path ) {
+		var a = curr.split('/'),
 			b = path.split('/');
+		
+		a.pop();
 		
 		for ( var i = 0; i < b.length; ++i ) {
 			if ( b[i] === '..' ) {

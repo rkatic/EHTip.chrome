@@ -167,10 +167,14 @@ exports.Tooltip = Class( Shape, {
 		var doc = this._doc;
 		var body = doc.body;
 		
-		var scrollLeft = body.scrollLeft;
-        var scrollTop = body.scrollTop;
-        //var scrollLeft = doc.documentElement.scrollLeft + body.scrollLeft;
-        //var scrollTop = doc.documentElement.scrollTop + body.scrollTop;
+		var bodyRect = body.getBoundingClientRect();
+		var dx = -bodyRect.left;
+		var dy = -bodyRect.top;
+		
+		//var scrollLeft = body.scrollLeft;
+		//var scrollTop = body.scrollTop;
+		//var scrollLeft = doc.documentElement.scrollLeft + body.scrollLeft;
+		//var scrollTop = doc.documentElement.scrollTop + body.scrollTop;
 		
 		
 		box.style.visibility = "hidden";
@@ -190,10 +194,10 @@ exports.Tooltip = Class( Shape, {
 		b.left = x - Math.round( b.width / 2 );
 		b.right = b.left + b.width;
 		
-		var dx = b.right - body.offsetWidth;
-		if ( dx > 0 ) {
-			b.left -= dx;
-			b.right -= dx;
+		var d = b.right - doc.documentElement.offsetWidth;
+		if ( d > 0 ) {
+			b.left -= d;
+			b.right -= d;
 		}
 		if ( b.left < 0 ) {
 			b.left = 0;
@@ -234,18 +238,18 @@ exports.Tooltip = Class( Shape, {
 		if ( pos && !noArrow ) {
 			if ( pos === 1 ) {
 				arrow = this.$down;
-				arrow.style.top = rect.top - 12 + scrollTop + "px";
+				arrow.style.top = rect.top - 12 + dy + "px";
 			} else {
 				arrow = this.$up;
-				arrow.style.top = rect.bottom + scrollTop + "px";
+				arrow.style.top = rect.bottom + dy + "px";
 			}
-			arrow.style.left = x - 12 + scrollLeft + 'px';
+			arrow.style.left = x - 12 + dx + 'px';
 			body.appendChild( arrow );
 		}
 		
 		
-		box.style.top = b.top + scrollTop + 'px';
-		box.style.left = b.left + scrollLeft + 'px';
+		box.style.top = b.top + dy + 'px';
+		box.style.left = b.left + dx + 'px';
 		box.style.visibility = "visible";
 	},
 	
@@ -296,8 +300,9 @@ exports.BoxOutliner = Class( Shape, {
 	
 	_show: function( r ) {
 		var body = this._doc.body
-		var dx = body.scrollLeft;
-		var dy = body.scrollTop;
+		var bodyRect = body.getBoundingClientRect();
+		var dx = -bodyRect.left;
+		var dy = -bodyRect.top;
 		
 		var s = this.$top.style;
 		s.top = r.top + dy + 'px';

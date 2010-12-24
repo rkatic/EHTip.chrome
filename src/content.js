@@ -1,9 +1,8 @@
-var _window = window;
 module("content", function( exports, require ) {
 	
 var shapes = require("shapes");
 	
-var	window = _window,
+var	window = this,
 	document = window.document,
 	_options = {},
 	_tooltip,
@@ -14,7 +13,7 @@ var	window = _window,
 	_selectMode,
 	_stayDelays,
 	_noTooltipArrow,
-	_holdNext,
+	_nextHold,
 	_hold,
 	_ignoreNextMouseUp,
 	_event = {
@@ -42,8 +41,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 
 
 function handleOptions( options ) {
-	_hold = false;
-	abort();
+	ABORT();
 	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
@@ -100,19 +98,13 @@ function lookup( term, callback ) {
 
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
-		if ( _holdNext ) {
-			_hold = true;
-			_holdNext = false;
-		}
+		_hold = _nextHold;
 		putResultsInTooltip( res );
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
-		
-		_noTooltipArrow = false;
-	}	
-	//} else if ( _hold ) {
-	//	_hold = false;
-	//	abort();
-	//}
+	}
+	
+	_noTooltipArrow = false;
+	_nextHold = false;
 }
 
 function putResultsInTooltip( results ) {
@@ -122,6 +114,7 @@ function putResultsInTooltip( results ) {
 	if ( _hold ) {
 		span = _tooltip.createElement('span');
 		span.style.cursor = "pointer";
+		span.style.color = "blue";
 		applyListiners( _tooltip._content, true, tooltipOnHoldListiners );
 	}
 	
@@ -169,7 +162,7 @@ function abort() {
 	}
 	
 	_rect = null;
-	_holdNext = false;
+	_nextHold = false;
 	_noTooltipArrow = false;
 	reqProcess.abort();
 	shrinkAnimation && shrinkAnimation.stop();
@@ -181,6 +174,11 @@ function abort() {
 	if ( _boxOutliner && _boxOutliner.visible ) {
 		_boxOutliner.hide();
 	}
+}
+
+function ABORT() {
+	_hold = false;
+	abort();
 }
 
 function applyListiners( target, add, map ) {
@@ -274,11 +272,12 @@ function onMouseStay() {
 		range.detach();
 		
 		if ( term ) {
-			_hold = false;
-			abort();
+			
+			ABORT();
 			
 			_rect = rect;
 			_event.shiftKey && _boxOutliner.show( boxRect );
+			shrinkAnimation && shrinkAnimation.play();
 			//console.log( term );
 			lookup( term );
 		}
@@ -289,8 +288,7 @@ function onMouseStay() {
 var selectListiners = {
 "mousedown": function( event ) {
 	if ( _hold && !_tooltip._content.contains(event.target)  ) {
-		_hold = false;
-		abort();
+		ABORT();
 	}
 },
 "mouseup": function( event ) {
@@ -320,7 +318,7 @@ function onSelected() {
 			_rect = range.getBoundingClientRect();
 			range.detach();
 		}
-		_holdNext = true;
+		_nextHold = true;
 		lookup( selected );
 	}
 }
@@ -342,12 +340,12 @@ var tooltipOnHoldListiners = {
 	if ( name === "b" || name === "span" ) {
 		if ( event.ctrlKey ) {
 			_noTooltipArrow = true;
+			_nextHold = true;
 			lookup( event.target.textContent );
 		
 		} else {
 			setSelection( event.target.textContent );
-			_hold = false;
-			abort();
+			ABORT();
 		}
 	}
 }
@@ -490,21 +488,25 @@ function getRangeAtXY( parent, x, y ) {
 }
 
 var shrinkAnimation = null && (function(){
-	var rects = [],
+	var rects = [], started,
 		timeoutId,
-		outliner = new shapes.BoxOutliner( document, "3px dotted orange" );
+		outliner = new shapes.BoxOutliner( document, "2px dotted orange" );
 	
 	function play() {
-		var rect = rects.unshift();
+		started = true;
+		var rect = rects.shift();
 		if ( rect ) {
 			outliner.show( rect );
-			timeoutId = window.setTimeout( play, 200 );
+			timeoutId = window.setTimeout( play, 300 );
 		} else {
 			stop();
 		}
 	}
 	
 	function stop() {
+		if ( !started ) {
+			return;
+		}
 		if ( timeoutId ) {
 			clearTimeout( timeoutId );
 			timeoutId = null;
@@ -516,8 +518,9 @@ var shrinkAnimation = null && (function(){
 	return {
 		push: function( rect ) {
 			rects.push( rect );
-			!timeoutId && play();
+			started = false;
 		},
+		play: play,
 		stop: stop
 	};
 })();
@@ -539,11 +542,10 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 	}
 	
 	var r = range.getBoundingClientRect();
+	shrinkAnimation && shrinkAnimation.push( r );
 	if ( r.left > x || r.right < x || r.top > y || r.bottom < y ) {
 		return false;
 	}
-	
-	shrinkAnimation && shrinkAnimation.push( r );
 	
 	var d = b - a;
 	if ( d === 1 ) {
@@ -589,7 +591,7 @@ var globalizedRect = (function(){
 			
 		} else {
 			var frames = doc.querySelectorAll('frame, iframe');
-			for ( var i = 0, l = frames.length; !ok, i < l; ++i ) {
+			for ( var i = 0, l = frames.length; !ok && i < l; ++i ) {
 				var contentDoc = frames.contentDocument;
 				if ( contentDoc && proc(contentDoc, frame, p) ) {
 					ok = true;
@@ -614,11 +616,12 @@ var globalizedRect = (function(){
 })();
 
 var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
-var reWordExclude = /\d/;
+var reWordExclude = /[\d“”]/;
 var reWordJoiner = /^[\s—\-_]+$/;
 
 function wordBound( str, p, inc ) {
-	var c = str[p],
+	var	oldp = p,
+		c = str[p],
 		pc = charCase(c), cc,
 		nc = ( inc < 0 ? -1 : 1 ),
 		next = ( inc < 0 ? inc : inc - 1 );
@@ -631,8 +634,10 @@ function wordBound( str, p, inc ) {
 		pc = cc;
 	}
 	
-	if ( str[p] === "'" ) {
-		p -= inc;
+	if ( p !== oldp ) {
+		if ( inc > 0 && str[p-1] === "'" || str[p] === "'" ) {
+			p -= inc;
+		}
 	}
 	
 	return p;
@@ -660,23 +665,6 @@ function isWord(s) {
 	return reWordInclude.test(s) && !reWordExclude.test(s);
 }
 
-function getRightWord( str, b ) {
-	var a = passRightWordJoiner( str, b );
-	if ( a !== -1 && isWord(str[a]) ) {
-		b = wordBound( str, a, 1 );
-		return str.substring( a, b );
-	}
-	return '';
-}
-
-function getLeftWord( str, a ) {
-	var b = passLeftWordJoiner( str, a );
-	if ( b !== -1 && isWord(str[b-1]) ) {
-		a = wordBound( str, b, -1 );
-		return str.substring(a, b);
-	}
-	return '';
-}
 
 function charCase( c ) {
 	var upper = c.toUpperCase();
