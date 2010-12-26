@@ -88,6 +88,8 @@ module('dictionary/async', function( exports, require ) {
 			var dictName = this.name,
 				results = [];
 			
+			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
+			
 			this.map(terms, errorCallback, function( arr ) {
 				var results = [];
 				for ( var i = 0, l = arr.length; i < l; ++i ) {
@@ -116,6 +118,11 @@ module('dictionary/async', function( exports, require ) {
 		},
 		
 		lookup: function( terms, errorCallback, callback ) {
+			if ( !this._morfology ) {
+				SimpleDictionary.apply( this, arguments );
+				return;
+			}
+			
 			var self = this, results = [], t;
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();

@@ -375,7 +375,7 @@ function setSelection( text ) {
 		node = selection.anchorNode;
 		value = node.textContent;
 		a = selection.anchorOffset;
-		b = ( node === selection.focusNode ) ? selection.focusOffset : value.length;
+		b = ( node === selection.focusNode ) ? selection.focusOffset : a;
 		if ( b < a ) {
 			t = a;
 			a = b;
