@@ -1,19 +1,20 @@
 module('dictionary/async', function( exports, require ) {
 	
-	var storage_async = require("storage/async"),
-		morfology = require("morfology");
+	var utils = require("utils"),
+		storage = require("storage/async");
 	
 	var undefined;
 	const DB_SIZE = 2 * 1024 * 1024;
 	
-	var SimpleDictionary = exports.SimpleDictionary = Class({
+	exports.Dictionary = Class({
 		
-		constructor: function( name ) {
+		constructor: function( name, morf ) {
 			this.name = name;
-			this._dict = storage_async.DictStorage.open( name, DB_SIZE );
+			this._dict = storage.DictStorage.open( name, DB_SIZE );
+			this._morfology = morf;
 		},
 		
-		getDefinitions: function( term, errorCallback, callback ) {
+		get: function( term, errorCallback, callback ) {
 			this._dict.getValue(term, errorCallback, function( value ) {
 				callback( value ? JSON.parse(value) : undefined );
 			});
@@ -39,11 +40,11 @@ module('dictionary/async', function( exports, require ) {
 			);
 		},
 		
-		setDefinitions: function( term, definitions, errorCallback, callback ) {
-			this._dict.set( term, JSON.stringify( definitions ), errorCallback, callback );
+		set: function( term, def, errorCallback, callback ) {
+			this._dict.set( term, JSON.stringify( def ), errorCallback, callback );
 		},
 		
-		setDeinitionsFromObject: function( obj, errorCallback, callback ) {
+		setFromObject: function( obj, errorCallback, callback ) {
 			var hash = utils.HASH();
 			
 			for ( var key in obj ) {
@@ -53,30 +54,7 @@ module('dictionary/async', function( exports, require ) {
 			this._dict.updateWithObject( hash, errorCallback, callback );
 		},
 		
-		setDefinitionsFromData: function( data, errorCallback, callback ) {
-			var lines = utils.splitLines( data ),
-				obj = utils.HASH(), pos, term, defs, _push = [].push;
-				
-			for ( var i = 0, l = lines.length; i < l; ++i ) {
-				pos = lines[i].indexOf('=');
-				
-				if ( pos !== -1 ) {
-					term = lines[i].substr( 0, pos ).trim().toLowerCase();
-					defs = lines[i].substr( pos + 1 ).trim().split(/\s*\|\s*/);
-					
-					if ( term in obj ) {
-						_push.apply( obj[ term ], defs );
-						
-					} else {
-						obj[ term ] = defs;
-					}
-				}
-			}
-			
-			this.setDeinitionsFromObject( obj, errorCallback, callback );
-		},
-		
-		removeAllDefinitions: function( errorCallback, callback ) {
+		empty: function( errorCallback, callback ) {
 			this._dict.reset( errorCallback, callback );
 		},
 		
@@ -84,72 +62,41 @@ module('dictionary/async', function( exports, require ) {
 			this._dict.erase( null, callback );
 		},
 		
-		lookup: function( terms, errorCallback, callback ) {
-			var dictName = this.name,
-				results = [];
+		lookup: function( terms, stopOnExact, errorCallback, callback ) {
+			var self = this,
+				results = [],
+				done = utils.HASH(),
+				t;
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
-			this.map(terms, errorCallback, function( arr ) {
-				var results = [];
-				for ( var i = 0, l = arr.length; i < l; ++i ) {
-					if ( arr[i] ) {
-						results.push({
-							term: terms[i],
-							definitions: arr[i],
-							parts: [ terms[i] ],
-							dict: dictName
-						});
-					}
-				}
-				callback( results );
-			});
-		}
-	});
-	
-	exports.Dictionary = Class( SimpleDictionary, {
-		
-		constructor: function( name, morf ) {
-			SimpleDictionary.call( this, name );
-			
-			this._morfology = ( typeof morf === "string" ) ?
-				morfology.Transformations.fromFile( morf ) :
-				morf;
-		},
-		
-		lookup: function( terms, errorCallback, callback ) {
-			if ( !this._morfology ) {
-				SimpleDictionary.apply( this, arguments );
-				return;
-			}
-			
-			var self = this, results = [], t;
-			
-			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
-			
-			function push( term, value, parts, tran ) {
+			function push( originalTerm, term, value, parts ) {
 				results.push({
 					dict: self.name,
 					term: term,
 					definitions: JSON.parse( value ),
 					parts: parts,
-					transformed: tran
+					originalTerm: originalTerm
 				});
 			}
 			
-			function procTerm( term ) {
-				var done = utils.HASH();
+			function procTerm( originalTerm ) {
+				done[ originalTerm ] = true;
 				
-				t.getValue(term, function( value ) {
+				t.getValue(originalTerm, function( value ) {					
 					if ( value ) {
-						push( term, value, [term] );
+						push( originalTerm, originalTerm, value );
 					}
 					
-					self._morfology.generate(term, function( term, parts ) {
+					if ( stopOnExact && value || !self._morfology ) {
+						return;
+					}
+					
+					self._morfology.generate(originalTerm, function( term, parts ) {
 						if ( term in done ) return;
 						done[ term ] = true;
 						t.getValue(term, function( value ) {
-							value && push( term, value, parts, true );
+							value && push( originalTerm, term, value, parts );
 						});
 					});
 				});

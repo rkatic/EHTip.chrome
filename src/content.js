@@ -4,12 +4,15 @@ var shapes = require("shapes");
 	
 var	window = this,
 	document = window.document,
-	_options = {},
+	_options = {
+		"tooltip.onStay": 0,
+		"tooltip.onSelect": 0
+	},
 	_tooltip,
 	_stayTimeoutId = null,
 	_rect = null,
 	_boxOutliner = null,
-	_stayOnlyWithShift,
+	_stayMode,
 	_selectMode,
 	_stayDelays,
 	_noTooltipArrow,
@@ -43,6 +46,14 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 function handleOptions( options ) {
 	ABORT();
 	
+	if ( options["tooltip.enabled"] ) {
+		_tooltip = _tooltip || new shapes.Tooltip( document );
+	} else {
+		_tooltip = null;
+		options["tooltip.onStay"] = 0;
+		options["tooltip.onSelect"] = 0;
+	}
+	
 	for ( var name in options ) {
 		if ( _options[name] === options[name] ) {
 			continue;
@@ -53,14 +64,11 @@ function handleOptions( options ) {
 		
 		switch ( name ) {
 			case "tooltip.onStay":
-				if ( newValue && !_boxOutliner ) {
-					_boxOutliner = new shapes.BoxOutliner( document, "1px dashed red" );
-					
-				} else if ( !newValue ) {
-					_boxOutliner = null;
-				}
+				_boxOutliner = newValue ?
+					new shapes.BoxOutliner( document, "1px dashed red" ) :
+					null;
 				
-				_stayOnlyWithShift = ( newValue === 1 );
+				_stayMode = newValue;
 				applyListiners( window, newValue, howerListiners );
 			
 			case "tooltip.onStay.delay":
@@ -78,9 +86,6 @@ function handleOptions( options ) {
 				
 		}
 	}
-
-	_tooltip = options["tooltip.onStay"] || options["tooltip.onSelect"] ?
-		( _tooltip || new shapes.Tooltip( document ) ) : null;
 	
 	_options = options;
 }
@@ -115,7 +120,7 @@ function putResultsInTooltip( results ) {
 		span = _tooltip.createElement('span');
 		span.style.cursor = "pointer";
 		span.style.color = "blue";
-		applyListiners( _tooltip._content, true, tooltipOnHoldListiners );
+		applyListiners( _tooltip._content, true, tooltipListiners );
 	}
 	
 	for ( var i = 0, l = results.length; i < l; ++i ) {
@@ -198,7 +203,7 @@ var howerListiners = {
 	
 	abort();
 	
-	if ( event.shiftKey || !_hold && !_stayOnlyWithShift ) {
+	if ( event.shiftKey || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
 		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
 	}
@@ -292,10 +297,9 @@ var selectListiners = {
 	}
 },
 "mouseup": function( event ) {
-	if ( !_selectMode ) {
-		return;
-	}
 	if ( _ignoreNextMouseUp ) {
+		event.preventDefault();
+		event.stopPropagation();
 		_ignoreNextMouseUp = false;
 		return;
 	}
@@ -314,7 +318,7 @@ function onSelected() {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 			_noTooltipArrow = true;
 		} else {
-			var range = selection.getRangeAt(0)
+			var range = selection.getRangeAt(0);
 			_rect = range.getBoundingClientRect();
 			range.detach();
 		}
@@ -323,7 +327,7 @@ function onSelected() {
 	}
 }
 
-var tooltipOnHoldListiners = {
+var tooltipListiners = {
 "mouseout": function( event ) {
 	if ( event.target.tagName.toLowerCase() === "span" ) {
 		event.target.style.textDecoration = "none";
@@ -338,7 +342,7 @@ var tooltipOnHoldListiners = {
 	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
-		if ( event.ctrlKey ) {
+		if ( event.ctrlKey || event.button === 1 ) {
 			_noTooltipArrow = true;
 			_nextHold = true;
 			lookup( event.target.textContent );

@@ -1,4 +1,7 @@
-module('morfology', function( exports ) {
+module('morfology', function( exports, require ) {
+	
+	var utils = require("utils"),
+		io = require("io");
 	
 	exports.Transformations = Class({
 		

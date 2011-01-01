@@ -1,6 +1,7 @@
 module("options", function( options, require ) {
 	
-	var Emitter = require("events").Emitter;
+	var utils = require("utils"),
+		Emitter = require("events").Emitter;
 	
 	options.init = function( defaults ) {
 		this.defaults = defaults;

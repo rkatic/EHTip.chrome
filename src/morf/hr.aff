@@ -1,0 +1,58 @@
+
+# sintaksa: regularni_izraz [dio_za_dodat]
+# prva grupa u regularnom izrazu je i dio koji se brise
+
+# ovi sa početnim ^ su prefiksi
+PFX (je|ni|ne|ho|naj|pra|is)
+PFX (ne) i
+
+SFX (i|mo|te|u) am
+
+SFX ([eiuo]) a
+SFX (om|oj|og|im|em) a
+SFX (ima|emu|oga|ome|omu|oma|oje|ije|jema) a
+
+SFX (ea) u
+SFX (e|emo|ste) u
+
+SFX [ai](ma)
+
+SFX (ci|aka) ka
+
+SFX . ti
+SFX ([ho]|smo|ste|jah|ja(še|smo|ste|hu)) ti
+SFX (je(h|še|smo|ste|hu)) iti
+SFX (l[aoie]) ti
+
+SFX ([aueim])
+SFX (om|ov[iae]|ima)
+SFX (ovima)
+
+SFX ([au]) o
+
+SFX (či(ju|ma)?) ko
+
+SFX (ala) lo
+SFX (ima) o
+
+SFX (l[aoie]) ao
+
+SFX (m|a|mo|ju|te) ti
+
+SFX (n[aeuoi]) an
+SFX (nim|noj|nom|nog|nima|nih) an
+SFX (no(ga|mu|me)) an
+
+SFX (ju|ma)
+SFX (oma|oje) i
+
+SFX (če|ci|cima) k
+
+SFX (a|mo|te)
+
+SFX (gu) æi
+SFX (že(š|mo|te)) æi
+
+SFX (e) i
+
+SFX (že(š|m|mo|te)|žu) zati

@@ -27,7 +27,7 @@ var module = (function(){
 		_defined[ '/' + currName.toLowerCase() ] = exports;
 		
 		function require( name ) {
-			if ( name.charAt(0) === '.' ) {
+			if ( name[0] === '.' ) {
 				name = resolve( currName, name );
 			}
 			
@@ -44,6 +44,11 @@ var module = (function(){
 	};
 	
 })();
+
+//var require;
+//module('', function( _, req ) {
+//	require = req;
+//});
 
 
 function Class( base, prototype ) {

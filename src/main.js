@@ -1,20 +1,22 @@
 //localStorage.clear();
-var require;
-module('', function(_, r){ require = r; });
+
+module("main", function( exports, require ) {
+	
 
 var utils = require("utils"),
 	io = require("io"),
 	options = require("options"),
-	storage_async = require("dictionary/async"),
+	storage_async = require("storage/async"),
 	dictionary_async = require("dictionary/async"),
+	morfology = require("morfology"),
 	Emitter = require("events").Emitter;
 
 
 var manifest = JSON.parse( io.readFile('./manifest.json') );
-console.log( manifest.name + ' ' + manifest.version );
 
 
 var _options = options.init({
+	"tooltip.enabled": true,
 	"tooltip.onStay": 1,
 	"tooltip.onStay.delay": 400,
 	"tooltip.onStay.withShift.delay": 200,
@@ -26,14 +28,22 @@ var _options = options.init({
 
 var dictInfo = {
 	'en-hr': {
-		revision: 1,
+		revision: 2,
 		morf: 'en',
-		inv: 'hr-en'
+		inv: 'hr-en',
+		path: './EH/EH-utf8.Txt',
+		sep: '\t',
+		term_column: 1,
+		def_column: 2
 	},
 	'hr-en': {
-		revision: 1,
+		revision: 2,
 		morf: 'hr',
-		inv: 'en-hr'
+		inv: 'en-hr',
+		path: './EH/EH-utf8.Txt',
+		sep: '\t',
+		term_column: 2,
+		def_column: 1
 	}
 };
 
@@ -68,15 +78,18 @@ function sendToAllTabs( request ) {
 }
 
 function init() {
-	var toReload = [];
+	var toReload = [], info, oldInfo, dict;
 	var oldDictInfo = utils.loadObject('dictInfo') || {};
 	
 	for ( var name in dictInfo ) {
-		var info = dictInfo[ name ];
-		var oldInfo = oldDictInfo[ name ] || {};
-		var dict = info.morf ?
-			new dictionary_async.Dictionary( name, './dicts/' + info.morf + '.aff' ) :
-			new dictionary_async.SimpleDictionary( name );
+		info = dictInfo[ name ];
+		oldInfo = oldDictInfo[ name ] || {};
+		
+		morf = info.morf ?
+			morfology.Transformations.fromFile( './morf/' + info.morf + '.aff' ) :
+			null;
+			
+		dict = new dictionary_async.Dictionary( name, morf );
 		
 		_dicts.push( dict );
 		
@@ -107,7 +120,7 @@ function init() {
 onInitialized.addListiner(function() {
 	initialized = true;
 	utils.saveObject( 'dictInfo', dictInfo );
-	console.log('INITIALIZED');
+	console.log( manifest.name + ' ' + manifest.version );
 });
 
 
@@ -123,7 +136,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 			break;
 		
 		case "lookup":
-			lookup( req.term, req.limit, send );
+			lookup( req.term, req.limit, req.stopOnExact, send );
 			break;
 		
 		default:
@@ -152,9 +165,23 @@ function reloadDicts( dicts, callback ) {
 		
 		console.log('Reloadin dictionary "' + dict.name + '".')
 		
-		dict.removeAllDefinitions(next, function() {
-			var data = io.readFile('./dicts/' + dict.name + '.dict');
-			dict.setDefinitionsFromData( data, next, next );
+		try {
+			var info = dictInfo[ dict.name ];
+			var data = io.readFile( info.path );
+			var obj = parse(
+				data,
+				info.sep,
+				info.term_column - 1,
+				info.def_column - 1
+			);
+			
+		} catch ( error ) {
+			next( error );
+			return;
+		}
+		
+		dict.empty(next, function() {
+			dict.setFromObject( obj, next, next );
 		});
 	}
 	
@@ -162,11 +189,56 @@ function reloadDicts( dicts, callback ) {
 }
 
 
-function lookup( term, limit, callback ) {
+//function parse( data ) {
+//	var lines = utils.splitLines( data ),
+//		rv = utils.HASH(), pos, term, defs, _push = [].push;
+//		
+//	for ( var i = 0, l = lines.length; i < l; ++i ) {
+//		pos = lines[i].indexOf('=');
+//		
+//		if ( pos !== -1 ) {
+//			term = lines[i].substr( 0, pos ).trim().toLowerCase();
+//			defs = lines[i].substr( pos + 1 ).trim().split(/\s*\|\s*/);
+//			
+//			if ( term in rv ) {
+//				_push.apply( rv[ term ], defs );
+//				
+//			} else {
+//				rv[ term ] = defs;
+//			}
+//		}
+//	}
+//	
+//	return rv;
+//}
+
+function parse( data, sep, keyIndex, valueIndex ) {
+	var lines = utils.splitLines( data ),
+		map = utils.HASH(), parts, key, value;
+	
+	for ( var i = 0, l = lines.length; i < l; ++i ) {
+		parts = lines[i].split( sep );
+		
+		key = ( parts[ keyIndex ] || "" ).trim().toLowerCase();
+		value = ( parts[ valueIndex ] || "" ).trim();
+		
+		if ( key && value ) {
+			if ( key in map ) {
+				map[ key ].push( value );
+				
+			} else {
+				map[ key ] = [ value ];
+			}
+		}
+	}
+	
+	return map;
+}
+
+
+function lookup( term, limit, stopOnExact, callback ) {
 	var terms = normalizedTerms( typeof term === "string" ? [term] : term ),
 		dicts = _dicts.concat(),
-		//n = dicts.length + 1, toClean,
-		//start = Date.now(),
 		results = [];
 	
 	function error( error ) {
@@ -176,11 +248,7 @@ function lookup( term, limit, callback ) {
 	
 	function collect( res ) {
 		if ( res ) {
-			var exacts = [], others = [];
-			for ( var i = 0, l = res.length; i < l; ++i ) {
-				( res[i].transformed ? others : exacts ).push( res[i] );
-			}
-			res = exacts.concat( others );
+			res = exactsFirst( res );
 			
 			if ( limit && res.length > limit ) {
 				res.length = limit;
@@ -190,49 +258,38 @@ function lookup( term, limit, callback ) {
 				results.push.apply( results, res );
 			}
 		}
+		
 		if ( dicts.length ) {
-			dicts.shift().lookup( terms, error, collect );
+			dicts.shift().lookup( terms, stopOnExact, error, collect );
 			
 		} else {
-			//console.log( Date.now() - start );
 			callback( results );
 		}
 	}
 	
 	collect();
-	
-	//function done( error ) {
-	//	if ( error ) {
-	//		reportError( error );
-	//		toClean = true;
-	//	}
-	//	if ( --n === 0 ) {
-	//		if ( toClean ) {
-	//			results = results.filter( K );
-	//		}
-	//		var a = [];
-	//		callback( a.concat.apply(a, results) );
-	//	}
-	//}
-	//
-	//dicts.forEach(function( dict, i ) {
-	//	dict.lookup(terms, done, function( res ) {
-	//		if ( limit && res.length > limit ) {
-	//			res.length = limit;
-	//		}
-	//		if ( res.length ) {
-	//			results[i] = res;
-	//		}
-	//		
-	//		done();
-	//	});
-	//});
-	//
-	//done();
 }
+
 
 function K( obj ) {
 	return !!obj;
+}
+
+function exactsFirst( res ) {
+	var exacts = [], others = [], r;
+	
+	for ( var i = 0, l = res.length; i < l; ++i ) {
+		r = res[i];
+		
+		if ( r.originalTerm && r.originalTerm !== r.term ) {
+			others.push( r );
+			
+		} else {
+			exacts.push( r );
+		}
+	}
+	
+	return exacts.concat( others );
 }
 
 function normalizedTerms( terms ) {
@@ -253,11 +310,8 @@ function normalizedTerms( terms ) {
 }
 
 
-function put_a( a ) {
-	var s = '[\n ' + a.map( JSON.stringify ).join(',\n ') + '\n]';
-	console.log( s );
-}
-
 init();
 //setTimeout( init, 5000 );
 
+
+});

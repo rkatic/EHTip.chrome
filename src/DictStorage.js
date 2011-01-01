@@ -134,8 +134,8 @@ var DictStorage = exports.DictStorage = Class({
 		this._db.readTransaction(
 			function( t ) {
 				t.executeSql( sql, args, function( t, r ) {
-					for ( var i = 0, l = r.length; i < l; ++i ) {
-						keys.push( r[i].key );
+					for ( var i = 0, l = r.rows.length; i < l; ++i ) {
+						keys.push( r.rows.item(i).key );
 					}
 				});
 			},
@@ -161,8 +161,9 @@ var DictStorage = exports.DictStorage = Class({
 		this._db.readTransaction(
 			function( t ) {
 				t.executeSql( sql, args, function( t, r ) {
-					for ( var i = 0, l = r.length; i < l; ++i ) {
-						proc( r[i].key, r[i].value );
+					for ( var item, i = 0, l = r.rows.length; i < l; ++i ) {
+						row = r.rows.item(i);
+						proc( row.key, row.value );
 					}
 				});
 			},
