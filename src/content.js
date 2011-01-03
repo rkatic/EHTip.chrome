@@ -16,8 +16,8 @@ var	window = this,
 	_selectMode,
 	_stayDelays,
 	_noTooltipArrow,
-	_nextHold,
 	_hold,
+	_explicit,
 	_ignoreNextMouseUp,
 	_event = {
 		clientX: null,
@@ -25,7 +25,8 @@ var	window = this,
 		target: null,
 		button: null,
 		shiftKey: null
-	};
+	},
+	undefined;
 
 
 chrome.extension.sendRequest( { type: "getOptions" }, handleOptions );
@@ -95,7 +96,9 @@ function lookup( term, callback ) {
 		{
 			type: "lookup",
 			term: term,
-			limit: _options["tooltip.limit"]
+			limit: _options["tooltip.limit"],
+			dicts: _explicit ? null : _options.implicit_dicts,
+			stopOnExact: !_explicit
 		},
 		callback || handleLookupResponse
 	);
@@ -103,17 +106,19 @@ function lookup( term, callback ) {
 
 function handleLookupResponse( res ) {
 	if ( res && res.length ) {
-		_hold = _nextHold;
 		putResultsInTooltip( res );
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
+		
+	} else {
+		_hold = false;
 	}
 	
+	//_explicit = undefined;
 	_noTooltipArrow = false;
-	_nextHold = false;
 }
 
 function putResultsInTooltip( results ) {
-	var span, t, b,
+	var span, t, b, dictNameDiv,
 		w = _tooltip.createElement('div');
 	
 	if ( _hold ) {
@@ -121,6 +126,12 @@ function putResultsInTooltip( results ) {
 		span.style.cursor = "pointer";
 		span.style.color = "blue";
 		applyListiners( _tooltip._content, true, tooltipListiners );
+	}
+	
+	if ( _explicit ) {
+		dictNameDiv = _tooltip.createElement('div');
+		dictNameDiv.style.fontSize = "0.8em";
+		dictNameDiv.style.color = "#6D6D67";
 	}
 	
 	for ( var i = 0, l = results.length; i < l; ++i ) {
@@ -151,6 +162,12 @@ function putResultsInTooltip( results ) {
 			t = ': ' + results[i].definitions.join(', ');
 			w.appendChild( document.createTextNode( t ) );
 		}
+		
+		if ( dictNameDiv ) {
+			t = dictNameDiv.cloneNode(false);
+			t.textContent = results[i].dict;
+			w.appendChild( t );
+		}
 	}
 	
 	_tooltip.setContent( w );
@@ -162,12 +179,13 @@ function abort() {
 	}
 	
 	if ( _stayTimeoutId ) {
-		clearTimeout( _stayTimeoutId );
+		window.clearTimeout( _stayTimeoutId );
 		_stayTimeoutId = null;
 	}
 	
 	_rect = null;
-	_nextHold = false;
+	_hold = false;
+	_explicit = undefined;
 	_noTooltipArrow = false;
 	reqProcess.abort();
 	shrinkAnimation && shrinkAnimation.stop();
@@ -197,7 +215,7 @@ function applyListiners( target, add, map ) {
 var howerListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
-	if ( _rect && isRectOverPoint(_rect, event.clientX, event.clientY) ) {
+	if ( _rect && (_explicit || !event.shiftKey) && isRectOverPoint(_rect, event.clientX, event.clientY) ) {
 		return;
 	}
 	
@@ -205,7 +223,8 @@ var howerListiners = {
 	
 	if ( event.shiftKey || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
-		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[event.shiftKey*1] );
+		_explicit = event.shiftKey;
+		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[_explicit ? 1 : 0] );
 	}
 }
 };
@@ -278,7 +297,7 @@ function onMouseStay() {
 		
 		if ( term ) {
 			
-			ABORT();
+			//ABORT();
 			
 			_rect = rect;
 			_event.shiftKey && _boxOutliner.show( boxRect );
@@ -314,6 +333,7 @@ function onSelected() {
 	var selection = getSelectionFrom( _event.target );
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
+		ABORT();
 		if ( isInputElement(_event.target) || _event.target.contentDocument ) {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 			_noTooltipArrow = true;
@@ -322,7 +342,8 @@ function onSelected() {
 			_rect = range.getBoundingClientRect();
 			range.detach();
 		}
-		_nextHold = true;
+		_hold = true;
+		_explicit = true;
 		lookup( selected );
 	}
 }
@@ -344,7 +365,8 @@ var tooltipListiners = {
 	if ( name === "b" || name === "span" ) {
 		if ( event.ctrlKey || event.button === 1 ) {
 			_noTooltipArrow = true;
-			_nextHold = true;
+			_hold = true;
+			_explicit = true;
 			lookup( event.target.textContent );
 		
 		} else {
@@ -512,7 +534,7 @@ var shrinkAnimation = null && (function(){
 			return;
 		}
 		if ( timeoutId ) {
-			clearTimeout( timeoutId );
+			window.clearTimeout( timeoutId );
 			timeoutId = null;
 		}
 		rects.length = 0;
@@ -680,8 +702,13 @@ function charCase( c ) {
 function trisCombinations( a, b, c ) {
 	var rv = [];
 	
-	c && rv.push( b + ' ' + c );
-	a && rv.push( a + ' ' + b );
+	if ( c && b.indexOf("'") === -1 ) {
+		rv.push( b + ' ' + c );
+	}
+	
+	if ( a && a.indexOf("'") === -1 ) {
+		rv.push( a + ' ' + b );
+	}
 	
 	rv.push( b );
 	

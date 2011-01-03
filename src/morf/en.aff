@@ -2,7 +2,7 @@ TRY esianrtolcdugmphbyfvkwzESIANRTOLCDUGMPHBYFVKWZ'
 
 PFX (re|in|un|de|dis|con|pro)
 
-SFX ('.*)
+SFX ('\S*)
 
 SFX (ive) e
 SFX [^e](ive)

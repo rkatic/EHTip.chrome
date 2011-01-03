@@ -1,4 +1,5 @@
 //localStorage.clear();
+delete localStorage.dictInfo;
 
 module("main", function( exports, require ) {
 	
@@ -17,40 +18,60 @@ var manifest = JSON.parse( io.readFile('./manifest.json') );
 
 var _options = options.init({
 	"tooltip.enabled": true,
-	"tooltip.onStay": 1,
-	"tooltip.onStay.delay": 400,
+	"tooltip.onStay": 2,
+	"tooltip.onStay.delay": 500,
 	"tooltip.onStay.withShift.delay": 200,
 	"tooltip.preferedPosition": "above",
 	"tooltip.limit": 4,
 	"tooltip.onSelect": 2,
-	"popup.limit": 0
+	"popup.limit": 0,
+	"implicit_dicts": ["en-hr"]
 });
 
-var dictInfo = {
-	'en-hr': {
+var _builtinDicts = [
+	{
+		name: 'en-hr',
 		revision: 2,
 		morf: 'en',
-		inv: 'hr-en',
 		path: './EH/EH-utf8.Txt',
 		sep: '\t',
 		term_column: 1,
 		def_column: 2
 	},
-	'hr-en': {
+	{
+		name: 'hr-en',
 		revision: 2,
 		morf: 'hr',
-		inv: 'en-hr',
 		path: './EH/EH-utf8.Txt',
 		sep: '\t',
 		term_column: 2,
 		def_column: 1
 	}
-};
+];
 
 var _dicts = [],
+	_dictInfo,
 	
 	initialized = false,
 	onInitialized = new Emitter();
+	
+	
+function _findByName_( name ) {
+	for ( var i = 0, l = this.length; i < l; ++i ) {
+		if ( this[i].name === name ) {
+			return this[i];
+		}
+	}
+	return null;
+}
+
+function mapArrayWithProp( arr, prop ) {
+	var map = utils.HASH();
+	for ( var i = 0, l = arr.length; i < l; ++i ) {
+		map[ arr[i][prop] ] = arr[i];
+	}
+	return map;
+}
 	
 
 function reportError( error ) {
@@ -78,35 +99,41 @@ function sendToAllTabs( request ) {
 }
 
 function init() {
-	var toReload = [], info, oldInfo, dict;
-	var oldDictInfo = utils.loadObject('dictInfo') || {};
+	var toBuild = [], info, dict, name,
+		a, b;
 	
-	for ( var name in dictInfo ) {
-		info = dictInfo[ name ];
-		oldInfo = oldDictInfo[ name ] || {};
+	a = mapArrayWithProp( _builtinDicts, 'name' );
+	b = mapArrayWithProp( utils.loadObject('dicts') || [], 'name' );
+	
+	for ( name in a ) {
+		if ( !(name in b) || a[name].revision > (b[name].revision || 0)  ) {
+			b[ name ] = a[ name ];
+		}
+	}
+	
+	for ( name in b ) {
+		info = b[name];
 		
 		morf = info.morf ?
 			morfology.Transformations.fromFile( './morf/' + info.morf + '.aff' ) :
 			null;
 			
-		dict = new dictionary_async.Dictionary( name, morf );
+		dict = new dictionary_async.Dictionary( info.name, morf );
 		
 		_dicts.push( dict );
 		
-		if ( info.revision > ( oldInfo.revision || 0 ) ) {
-			toReload.push( dict );
+		if ( !info.ready ) {
+			toBuild.push( dict );
 		}
-		
-		delete oldDictInfo[ name ];
 	}
 	
-	for ( var name in oldDictInfo ) {
-		storage_async.DictStorage.erase( name );
-	}
+	_dictInfo = utils.values( b );
+	
+	utils.saveObject('dicts', _dictInfo);
 
-	if ( toReload ) {
+	if ( toBuild ) {
 		// SET POPUP
-		reloadDicts(toReload, function() {
+		reloadDicts(toBuild, function() {
 			// RESET POPUP
 			onInitialized.emit();
 		});
@@ -119,7 +146,7 @@ function init() {
 
 onInitialized.addListiner(function() {
 	initialized = true;
-	utils.saveObject( 'dictInfo', dictInfo );
+	utils.saveObject('dicts', _dictInfo);
 	console.log( manifest.name + ' ' + manifest.version );
 });
 
@@ -136,7 +163,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 			break;
 		
 		case "lookup":
-			lookup( req.term, req.limit, req.stopOnExact, send );
+			lookup( req, send );
 			break;
 		
 		default:
@@ -146,15 +173,19 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 
 
 function reloadDicts( dicts, callback ) {
+	var dict, info;
+	
 	dicts = dicts.concat();
-	var dict;
 	
 	function next( error ) {
 		if ( error ) {
 			console.error( error );
-			utils.remove( _dicts, dict );
-			delete dictInfo[ dict.name ];
-			dict.free();			
+			utils.removeFromArray( _dicts, dict );
+			utils.removeFromArray( _dictInfo, info );
+			dict.free();
+			
+		} else if ( info ) {
+			info.ready = true;
 		}
 	
 		dict = dicts.shift();
@@ -165,8 +196,9 @@ function reloadDicts( dicts, callback ) {
 		
 		console.log('Reloadin dictionary "' + dict.name + '".')
 		
+		info = _findByName_.call( _dictInfo, dict.name );
+		
 		try {
-			var info = dictInfo[ dict.name ];
 			var data = io.readFile( info.path );
 			var obj = parse(
 				data,
@@ -188,29 +220,6 @@ function reloadDicts( dicts, callback ) {
 	next();
 }
 
-
-//function parse( data ) {
-//	var lines = utils.splitLines( data ),
-//		rv = utils.HASH(), pos, term, defs, _push = [].push;
-//		
-//	for ( var i = 0, l = lines.length; i < l; ++i ) {
-//		pos = lines[i].indexOf('=');
-//		
-//		if ( pos !== -1 ) {
-//			term = lines[i].substr( 0, pos ).trim().toLowerCase();
-//			defs = lines[i].substr( pos + 1 ).trim().split(/\s*\|\s*/);
-//			
-//			if ( term in rv ) {
-//				_push.apply( rv[ term ], defs );
-//				
-//			} else {
-//				rv[ term ] = defs;
-//			}
-//		}
-//	}
-//	
-//	return rv;
-//}
 
 function parse( data, sep, keyIndex, valueIndex ) {
 	var lines = utils.splitLines( data ),
@@ -236,10 +245,14 @@ function parse( data, sep, keyIndex, valueIndex ) {
 }
 
 
-function lookup( term, limit, stopOnExact, callback ) {
-	var terms = normalizedTerms( typeof term === "string" ? [term] : term ),
-		dicts = _dicts.concat(),
+function lookup( o, callback ) {
+	var	dicts = o.dicts || _dicts,
+		terms = normalizedTerms( typeof o.term === "string" ? [o.term] : o.term ),
 		results = [];
+	
+	dicts = ( typeof dicts[0] === "string" ) ?
+		dicts.map( _findByName_, _dicts ) :
+		dicts.concat();
 	
 	function error( error ) {
 		reportError( error );
@@ -250,8 +263,8 @@ function lookup( term, limit, stopOnExact, callback ) {
 		if ( res ) {
 			res = exactsFirst( res );
 			
-			if ( limit && res.length > limit ) {
-				res.length = limit;
+			if ( o.limit && res.length > o.limit ) {
+				res.length = o.limit;
 			}
 			
 			if ( res.length ) {
@@ -260,7 +273,7 @@ function lookup( term, limit, stopOnExact, callback ) {
 		}
 		
 		if ( dicts.length ) {
-			dicts.shift().lookup( terms, stopOnExact, error, collect );
+			dicts.shift().lookup( terms, o.stopOnExact, error, collect );
 			
 		} else {
 			callback( results );

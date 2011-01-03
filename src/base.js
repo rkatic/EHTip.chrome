@@ -125,11 +125,29 @@ module("utils", function( utils ) {
 		return value ? JSON.parse( value ) : undefined;
 	};
 	
-	utils.remove = function( arr, obj ) {
+	utils.removeFromArray = function( arr, obj ) {
 		var pos = arr.indexOf( obj );
 		if ( pos !== -1 ) {
 			arr.splice( pos, 1 );
 		}
 		return pos;
 	};
+	
+	utils.pluck = function( arr, prop ) {
+		var res = [];
+		for ( var i = 0, l = arr.length; i < l; ++i ) {
+			res[i] = arr[i][ prop ];
+		}
+		return res;
+	};
+	
+	utils.values = function( obj ) {
+		var res = [];
+		for ( var key in obj ) {
+			res.push( obj[key] );
+		}
+		return res;
+	};
+	
+	utils.keys = Object.keys;
 });
