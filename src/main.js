@@ -19,10 +19,44 @@ bg.__defineGetter__('dictNames', function() {
 	});
 });
 
-var manifest = JSON.parse( io.readFile('./manifest.json') );
+var _dicts = [],
+	_dictInfo,
+	_options = {},
+	
+	_builtinDicts = [
+		{
+			name: 'en-hr',
+			revision: 2,
+			morf: 'en',
+			path: './EH/EH-utf8.Txt',
+			sep: '\t',
+			term_column: 1,
+			def_column: 2
+		},
+		{
+			name: 'hr-en',
+			revision: 2,
+			morf: 'hr',
+			path: './EH/EH-utf8.Txt',
+			sep: '\t',
+			term_column: 2,
+			def_column: 1
+		}
+	],
 
+	manifest = JSON.parse( io.readFile('./manifest.json') );
+	
 
-var _options = options.init({
+options.onSaved.addListiner(function( newOptions ) {
+	if ( newOptions["tooltip.enabled"] !== _options["tooltip.enabled"] ) {
+		setButton( newOptions["tooltip.enabled"] );
+	}
+	
+	_options = newOptions;
+	sendToAllTabs({ type: "options", options: newOptions });
+});
+
+options.init({
 	"tooltip.enabled": true,
 	"tooltip.onStay": 2,
 	"tooltip.onStay.delays": [200, 500],
@@ -33,33 +67,61 @@ var _options = options.init({
 	"implicit_dicts": ["en-hr"]
 });
 
-var _builtinDicts = [
-	{
-		name: 'en-hr',
-		revision: 2,
-		morf: 'en',
-		path: './EH/EH-utf8.Txt',
-		sep: '\t',
-		term_column: 1,
-		def_column: 2
-	},
-	{
-		name: 'hr-en',
-		revision: 2,
-		morf: 'hr',
-		path: './EH/EH-utf8.Txt',
-		sep: '\t',
-		term_column: 2,
-		def_column: 1
-	}
-];
 
-var _dicts = [],
-	_dictInfo,
+function init() {
+	var toBuild = [], info, dict, name,
+		a, b;
 	
-	initialized = false,
-	onInitialized = new Emitter();
+	a = mapArrayWithProp( _builtinDicts, 'name' );
+	b = mapArrayWithProp( utils.loadObject('dicts') || [], 'name' );
 	
+	for ( name in a ) {
+		if ( !(name in b) || a[name].revision > (b[name].revision || 0)  ) {
+			b[ name ] = a[ name ];
+		}
+	}
+	
+	for ( name in b ) {
+		info = b[name];
+		
+		morf = info.morf ?
+			morfology.Transformations.fromFile( './morf/' + info.morf + '.aff' ) :
+			null;
+			
+		dict = new dictionary_async.Dictionary( info.name, morf );
+		
+		_dicts.push( dict );
+		
+		if ( !info.ready ) {
+			toBuild.push( dict );
+		}
+	}
+	
+	_dictInfo = utils.values( b );
+	
+	utils.saveObject('dicts', _dictInfo);
+
+	if ( toBuild ) {
+		window.setTimeout(function() {
+			reloadDicts( toBuild, function() {
+				utils.saveObject('dicts', _dictInfo);
+			});
+		}, 1);
+	}
+	
+	
+	console.log( manifest.name + ' ' + manifest.version );
+	
+	bg.version = manifest.version;
+	
+	var prev_version = localStorage.version;
+	localStorage.version = manifest.version;
+	
+	if ( !prev_version || prev_version < manifest.version ) {
+		openOptionsPage();
+	}
+}
+
 	
 function _findByName_( name ) {
 	for ( var i = 0, l = this.length; i < l; ++i ) {
@@ -108,67 +170,19 @@ function sendToAllTabs( request ) {
 	});
 }
 
-function init() {
-	var toBuild = [], info, dict, name,
-		a, b;
-	
-	a = mapArrayWithProp( _builtinDicts, 'name' );
-	b = mapArrayWithProp( utils.loadObject('dicts') || [], 'name' );
-	
-	for ( name in a ) {
-		if ( !(name in b) || a[name].revision > (b[name].revision || 0)  ) {
-			b[ name ] = a[ name ];
-		}
-	}
-	
-	for ( name in b ) {
-		info = b[name];
-		
-		morf = info.morf ?
-			morfology.Transformations.fromFile( './morf/' + info.morf + '.aff' ) :
-			null;
-			
-		dict = new dictionary_async.Dictionary( info.name, morf );
-		
-		_dicts.push( dict );
-		
-		if ( !info.ready ) {
-			toBuild.push( dict );
-		}
-	}
-	
-	_dictInfo = utils.values( b );
-	
-	utils.saveObject('dicts', _dictInfo);
-
-	if ( toBuild ) {
-		window.setTimeout(function() {
-			reloadDicts( toBuild, function() {
-				utils.saveObject('dicts', _dictInfo);
-			});
-		}, 1);
-	}
-		
-	onInitialized.emit();
+function setButton( enabled ) {
+	chrome.browserAction.setIcon({
+		path: ( enabled ? "images/icon19.png" : "images/icon19-off.png" )
+	});
+	chrome.browserAction.setTitle({
+		title: ( enabled ? "Disable" : "Enable" ) + " EHTip Tooltip"
+	});
 }
 
-
-onInitialized.addListiner(function() {
-	initialized = true;
-	console.log( manifest.name + ' ' + manifest.version );
-	
-	var prev_version = localStorage.version;
-	localStorage.version = manifest.version;
-	
-	if ( !prev_version || prev_version < manifest.version ) {
-		openOptionsPage();
-	}
-});
-
-
-options.onSaved.addListiner(function( newOptions ) {
-	_options = newOptions;
-	sendToAllTabs({ type: "options", options: newOptions });
+chrome.browserAction.onClicked.addListener(function() {
+	var o = options.load();
+	o["tooltip.enabled"] = !o["tooltip.enabled"];
+	options.save( o );
 });
 
 chrome.extension.onRequest.addListener(function( req, sender, send ) {

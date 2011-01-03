@@ -1,6 +1,6 @@
 {
 	"name": "EHTip",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"update_url": "http://bender.fesb.hr/~robert/ehtip/crx/update.xml",
 	"permissions": [
 		"tabs",
@@ -9,6 +9,9 @@
 	"icons": {
 		"16": "images/icon16.png",
 		"48": "images/icon48.png"
+	},
+	"browser_action": {
+		"default_icon": "images/icon19.png"
 	},
 	"background_page": "bg.html",
 	"options_page": "options.html",

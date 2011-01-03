@@ -3,6 +3,8 @@ module("options", function( options, require ) {
 	var utils = require("utils"),
 		Emitter = require("events").Emitter;
 	
+	options.onSaved = new Emitter();
+	
 	options.init = function( defaults ) {
 		this.defaults = defaults;
 		var newOptions = utils.extend( {}, defaults );
@@ -15,8 +17,7 @@ module("options", function( options, require ) {
 				}
 			}
 		}
-		
-		this.onSaved = new Emitter();
+
 		this.save( newOptions );
 		return newOptions;
 	};

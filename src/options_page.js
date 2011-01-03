@@ -27,6 +27,11 @@ function reset() {
 	setRadioGroup("onSelect_mode", _options["tooltip.onSelect"]);
 	setRadioGroup("position", _options["tooltip.preferedPosition"]);
 	
+	if ( !_options["tooltip.enabled"] ) {
+		_options["tooltip.enabled"] = true;
+		bg.options.save( _options );
+	}
+	
 	var selDict = $("implicit_dictionary"),
 		opt = document.createElement('option'),
 		dict_names = bg.dictNames;
