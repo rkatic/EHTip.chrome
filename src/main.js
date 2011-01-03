@@ -1,9 +1,8 @@
 //localStorage.clear();
 delete localStorage.dictInfo;
 
-module("main", function( exports, require ) {
+var bg = module("main", function( bg, require ) {
 	
-
 var utils = require("utils"),
 	io = require("io"),
 	options = require("options"),
@@ -12,6 +11,7 @@ var utils = require("utils"),
 	morfology = require("morfology"),
 	Emitter = require("events").Emitter;
 
+bg.options = options;
 
 var manifest = JSON.parse( io.readFile('./manifest.json') );
 

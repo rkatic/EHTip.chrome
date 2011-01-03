@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>EHTip Extension Options</title>
+    <link rel="icon" type="image/png" href="icon16.png">
+    <link rel="stylesheet" type="text/css" href="options.css">
+    <script type="text/javascript" src="options_page.js"></script>
+  </head>
+  <body onload="init()">
+    <div id="content">
+      <h1>
+        <img src='./images/logo.png' title="EHTip" alt="EHTip"><br>
+        EHTip Options
+      </h1>
+
+      <form name="options_form" action="">
+
+        <div class="option_row">
+          <div class="option_name">On Mouse Hovering:</div>
+          <div class="option_picker">
+            <input type="radio" name="onStay_mode" value="2" id="onStay_mode_2">
+            <label for="onStay_mode_2">Display Tooltip</label><br>
+            <input type="radio" name="onStay_mode" value="1" id="onStay_mode_1">
+            <label for="onStay_mode_1">Display Tooltip only with <b>Shift</b> pressed down</label><br>
+            <input type="radio" name="onStay_mode" value="0" id="onStay_mode_0">
+            <label for="onStay_mode_0">Do not display tooltip</label>
+          </div>
+        </div>
+        
+        <div class="option_row">
+          <div class="option_name">On Selecting:</div>
+          <div class="option_picker">
+            <input type="radio" name="onSelect_mode" value="2" id="onSelect_mode_2">
+            <label for="onSelect_mode_2">Display Tooltip</label><br>
+            <input type="radio" name="onSelect_mode" value="1" id="onSelect_mode_1">
+            <label for="onSelect_mode_1">Display Tooltip only with <b>Shift</b> pressed down</label><br>
+            <input type="radio" name="onSelect_mode" value="0" id="onSelect_mode_0">
+            <label for="onSelect_mode_0">Do not display tooltip</label>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="save_button">Save</button>
+          <button id="reset_button">Reset</button>
+          <span id="save_status">Options saved.</span>
+        </div>
+      </form>
+
+    </div>
+
+    <div class="footer"></div>
+
+  </body>
+</html>

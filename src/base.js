@@ -41,6 +41,8 @@ var module = (function(){
 		}
 		
 		body( exports, require );
+		
+		return exports;
 	};
 	
 })();
