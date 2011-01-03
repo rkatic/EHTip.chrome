@@ -24,7 +24,8 @@ var	window = this,
 		clientY: null,
 		target: null,
 		button: null,
-		shiftKey: null
+		ctrlKey: null,
+		metaKey: null
 	},
 	undefined;
 
@@ -43,6 +44,10 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 	}
 });
 
+function isExplicitEvent( event ) {
+	return !!( event.ctrlKey || event.metaKey );
+}
+
 
 function handleOptions( options ) {
 	ABORT();
@@ -50,7 +55,6 @@ function handleOptions( options ) {
 	if ( options["tooltip.enabled"] ) {
 		_tooltip = _tooltip || new shapes.Tooltip( document );
 	} else {
-		_tooltip = null;
 		options["tooltip.onStay"] = 0;
 		options["tooltip.onSelect"] = 0;
 	}
@@ -71,13 +75,10 @@ function handleOptions( options ) {
 				
 				_stayMode = newValue;
 				applyListiners( window, newValue, howerListiners );
+				break;
 			
-			case "tooltip.onStay.delay":
-			case "tooltip.onStay.withShift.delay":
-				_stayDelays = [
-					options["tooltip.onStay.delay"],
-					options["tooltip.onStay.withShift.delay"]
-				];
+			case "tooltip.onStay.delays":
+				_stayDelays = newValue;
 				break;
 				
 			case "tooltip.onSelect":
@@ -215,16 +216,19 @@ function applyListiners( target, add, map ) {
 var howerListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
-	if ( _rect && (_explicit || !event.shiftKey) && isRectOverPoint(_rect, event.clientX, event.clientY) ) {
+	if ( _rect && (_explicit || !isExplicitEvent(event)) && isRectOverPoint(_rect, event.clientX, event.clientY)
+		|| _hold && _tooltip._content.contains(event.target) ) {
 		return;
 	}
 	
 	abort();
 	
-	if ( event.shiftKey || !_hold && _stayMode > 1 ) {
+	var explicit = isExplicitEvent( event );
+	
+	if ( explicit || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
-		_explicit = event.shiftKey;
-		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[_explicit ? 1 : 0] );
+		_explicit = explicit;
+		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[explicit ? 0 : 1] );
 	}
 }
 };
@@ -300,7 +304,7 @@ function onMouseStay() {
 			//ABORT();
 			
 			_rect = rect;
-			_event.shiftKey && _boxOutliner.show( boxRect );
+			_explicit && _boxOutliner.show( boxRect );
 			shrinkAnimation && shrinkAnimation.play();
 			//console.log( term );
 			lookup( term );
@@ -322,7 +326,7 @@ var selectListiners = {
 		_ignoreNextMouseUp = false;
 		return;
 	}
-	if ( event.button === 0 && (_selectMode > 1 || event.shiftKey) ) {
+	if ( event.button === 0 && (_selectMode > 1 || isExplicitEvent(event)) ) {
 		recObject( _event, event );
 		window.setTimeout( onSelected, 1 );
 	}

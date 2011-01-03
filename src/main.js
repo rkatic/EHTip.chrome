@@ -13,14 +13,19 @@ var utils = require("utils"),
 
 bg.options = options;
 
+bg.__defineGetter__('dictNames', function() {
+	return _builtinDicts.map(function( info ) {
+		return info.name;
+	});
+});
+
 var manifest = JSON.parse( io.readFile('./manifest.json') );
 
 
 var _options = options.init({
 	"tooltip.enabled": true,
 	"tooltip.onStay": 2,
-	"tooltip.onStay.delay": 500,
-	"tooltip.onStay.withShift.delay": 200,
+	"tooltip.onStay.delays": [200, 500],
 	"tooltip.preferedPosition": "above",
 	"tooltip.limit": 4,
 	"tooltip.onSelect": 2,
@@ -71,6 +76,11 @@ function mapArrayWithProp( arr, prop ) {
 		map[ arr[i][prop] ] = arr[i];
 	}
 	return map;
+}
+
+function openOptionsPage() {
+	var url = chrome.extension.getURL( manifest.options_page );
+	chrome.tabs.create( { url: url } );
 }
 	
 
@@ -132,22 +142,27 @@ function init() {
 	utils.saveObject('dicts', _dictInfo);
 
 	if ( toBuild ) {
-		// SET POPUP
-		reloadDicts(toBuild, function() {
-			// RESET POPUP
-			onInitialized.emit();
-		});
-		
-	} else {
-		onInitialized.emit();
+		window.setTimeout(function() {
+			reloadDicts( toBuild, function() {
+				utils.saveObject('dicts', _dictInfo);
+			});
+		}, 1);
 	}
+		
+	onInitialized.emit();
 }
 
 
 onInitialized.addListiner(function() {
 	initialized = true;
-	utils.saveObject('dicts', _dictInfo);
 	console.log( manifest.name + ' ' + manifest.version );
+	
+	var prev_version = localStorage.version;
+	localStorage.version = manifest.version;
+	
+	if ( !prev_version || prev_version < manifest.version ) {
+		openOptionsPage();
+	}
 });
 
 
@@ -190,7 +205,7 @@ function reloadDicts( dicts, callback ) {
 	
 		dict = dicts.shift();
 		if ( !dict ) {
-			callback();
+			callback && callback();
 			return;
 		}
 		
