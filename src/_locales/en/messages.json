@@ -1,0 +1,53 @@
+{
+	"enableTooltip_title": {
+		"message": "Enable $1 Tooltip"
+	},
+	"disableTooltip_title": {
+		"message": "Disable $1 Tooltip"
+	},
+	"Options": {
+		"message": "Options"
+	},
+	"on_stay": {
+		"message": "On mouse over word"
+	},
+	"on_select": {
+		"message": "On selecting"
+	},
+	"implicitDict_label": {
+		"message": "Dictionary to lookup on mouse over word with no"
+	},
+	"tooltipPrefPosition": {
+		"message": "Tooltip preferred position"
+	},
+	"Above": {
+		"message": "Above"
+	},
+	"Below": {
+		"message": "Below"
+	},
+	"mode0_label": {
+		"message": "Display tooltip"
+	},
+	"mode1_label": {
+		"message": "Display tooltip only with"
+	},
+	"mode2_label": {
+		"message": "Do not display tooltip"
+	},
+	"Save": {
+		"message": "Save"
+	},
+	"Reset": {
+		"message": "Reset"
+	},
+	"optionsSaved": {
+		"message": "Options saved."
+	},
+	"en_hr": {
+		"message": "English - Croatian"
+	},
+	"hr_en": {
+		"message": "Croatian - English"
+	}
+}

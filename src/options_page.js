@@ -4,6 +4,8 @@ var bg = chrome.extension.getBackgroundPage().bg;
 var _options;
 
 function init() {
+	bg.localizeDom( document.body );
+	
 	reset();
 	
 	$("save_button").addEventListener("click", save, false);
@@ -34,14 +36,14 @@ function reset() {
 	
 	var selDict = $("implicit_dictionary"),
 		opt = document.createElement('option'),
-		dict_names = bg.dictNames;
+		dict_names = bg.getDictNames();
 	
 	selDict.innerHTML = "";
 	
 	dict_names.forEach(function( name ) {
 		var o = opt.cloneNode(false);
 		o.value = name;
-		o.textContent = name;
+		o.textContent = bg.localizedDictionaryName( name );
 		selDict.appendChild( o );
 	});
 	

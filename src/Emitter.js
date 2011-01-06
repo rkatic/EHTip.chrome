@@ -14,7 +14,7 @@ Emitter.prototype = {
 	},
 	
 	removeListiner: function( listener ) {
-		var pos = this._listeners.indexOf( listener );
+		var pos = this._listeners.lastIndexOf( listener );
 		
 		if ( pos > -1 ) {
 			this._listeners.splice( pos, 1 );

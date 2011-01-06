@@ -99,7 +99,8 @@ function lookup( term, callback ) {
 			term: term,
 			limit: _options["tooltip.limit"],
 			dicts: _explicit ? null : _options.implicit_dicts,
-			stopOnExact: !_explicit
+			stopOnExact: !_explicit,
+			localize: true
 		},
 		callback || handleLookupResponse
 	);
@@ -166,7 +167,7 @@ function putResultsInTooltip( results ) {
 		
 		if ( dictNameDiv ) {
 			t = dictNameDiv.cloneNode(false);
-			t.textContent = results[i].dict;
+			t.textContent = results[i].dict_localized;
 			w.appendChild( t );
 		}
 	}

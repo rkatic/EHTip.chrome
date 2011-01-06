@@ -1,0 +1,54 @@
+{
+	"enableTooltip_title": {
+		"message": "Aktiviraj $1 prijevod"
+	},
+	"disableTooltip_title": {
+		"message": "Deaktiviraj $1 prijevod"
+	},
+	"Options": {
+		"message": "Postavke"
+	},
+	"on_stay": {
+		"message": "Mirovanjem miša nad riječ"
+	},
+	"on_select": {
+		"message": "Označavanjem pojma"
+	},
+	"implicitDict_label": {
+		"message": "Korišteni rječnik mirovanjem miša nad riječ bez"
+	},
+	"tooltipPrefPosition": {
+		"message": "Preferirana pozicija prijevoda"
+	},
+	"Above": {
+		"message": "Iznad"
+	},
+	"Below": {
+		"message": "Ispod"
+	},
+	"mode0_label": {
+		"message": "Ne prikazuj prijevod"
+	},
+	"mode1_label": {
+		"message": "Prikaži prijevod samo uz"
+	},
+	"mode2_label": {
+		"message": "Prikaži prijevod"
+	},
+	"Save": {
+		"message": "Spremi"
+	},
+	"Reset": {
+		"message": "Vrati"
+	},
+	"optionsSaved": {
+		"message": "Postavke spremljene."
+	},
+	"en_hr": {
+		"message": "Engleski - Hrvatski"
+	},
+	"hr_en": {
+		"message": "Hrvatski - Engleski"
+	}
+}
+

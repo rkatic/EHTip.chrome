@@ -167,14 +167,14 @@ exports.Tooltip = Class( Shape, {
 		var doc = this._doc;
 		var body = doc.body;
 		
-		var bodyRect = body.getBoundingClientRect();
-		var dx = -bodyRect.left;
-		var dy = -bodyRect.top;
+		//var bodyRect = body.getBoundingClientRect();
+		//var dx = -bodyRect.left;
+		//var dy = -bodyRect.top;
 		
-		//var scrollLeft = body.scrollLeft;
-		//var scrollTop = body.scrollTop;
-		//var scrollLeft = doc.documentElement.scrollLeft + body.scrollLeft;
-		//var scrollTop = doc.documentElement.scrollTop + body.scrollTop;
+		var dx = body.scrollLeft;
+		var dy = body.scrollTop;
+		//var dx = doc.documentElement.scrollLeft + body.scrollLeft;
+		//var dy = doc.documentElement.scrollTop + body.scrollTop;
 		
 		
 		box.style.visibility = "hidden";
@@ -300,9 +300,11 @@ exports.BoxOutliner = Class( Shape, {
 	
 	_show: function( r ) {
 		var body = this._doc.body
-		var bodyRect = body.getBoundingClientRect();
-		var dx = -bodyRect.left;
-		var dy = -bodyRect.top;
+		//var bodyRect = body.getBoundingClientRect();
+		//var dx = -bodyRect.left;
+		//var dy = -bodyRect.top;
+		var dx = body.scrollLeft;
+		var dy = body.scrollTop;
 		
 		var s = this.$top.style;
 		s.top = r.top + dy + 'px';

@@ -8,54 +8,54 @@
   <body onload="init()">
     <div id="content">
       <h1>
-        <img src='images/icon48.png' title="EHTip" alt="EHTip">EHTip Options
+        <img src='images/icon48.png' title="EHTip" alt="EHTip">EHTip __MSG_Options__
       </h1>
 
       <form name="options_form" action="">
 
         <div class="option_row">
-          <div class="option_name">On mouse over word:</div>
+          <div class="option_name">__MSG_on_stay__:</div>
           <div class="option_picker">
             <input type="radio" name="onStay_mode" value="2" id="onStay_mode_2">
-            <label for="onStay_mode_2">Display tooltip <span id="star0" style="color:red;">*</span></label><br>
+            <label for="onStay_mode_2">__MSG_mode2_label__ <b id="star0" style="color:red;">*</b></label><br>
             <input type="radio" name="onStay_mode" value="1" id="onStay_mode_1">
-            <label for="onStay_mode_1">Display tooltip only with <b>Ctrl</b></label><br>
+            <label for="onStay_mode_1">__MSG_mode1_label__ <b>Ctrl</b></label><br>
             <input type="radio" name="onStay_mode" value="0" id="onStay_mode_0">
-            <label for="onStay_mode_0">Do not display tooltip</label>
+            <label for="onStay_mode_0">__MSG_mode0_label__</label>
           </div>
         </div>
         
         <div class="option_row" id="implicit_dictionary_row" style="padding: 1em 3em 0">
-          <span style="color: red;">*</span> Dictionary to lookup on mouse over word with no <b>Ctrl</b>:
+          <b style="color: red;">*</b> __MSG_implicitDict_label__ <b>Ctrl</b>:
           <select id="implicit_dictionary"></select>
         </div>
         
         <div class="option_row">
-          <div class="option_name">On selecting:</div>
+          <div class="option_name">__MSG_on_select__:</div>
           <div class="option_picker">
             <input type="radio" name="onSelect_mode" value="2" id="onSelect_mode_2">
-            <label for="onSelect_mode_2">Display tooltip</label><br>
+            <label for="onSelect_mode_2">__MSG_mode2_label__</label><br>
             <input type="radio" name="onSelect_mode" value="1" id="onSelect_mode_1">
-            <label for="onSelect_mode_1">Display tooltip only with <b>Ctrl</b></label><br>
+            <label for="onSelect_mode_1">__MSG_mode1_label__ <b>Ctrl</b></label><br>
             <input type="radio" name="onSelect_mode" value="0" id="onSelect_mode_0">
-            <label for="onSelect_mode_0">Do not display tooltip</label>
+            <label for="onSelect_mode_0">__MSG_mode0_label__</label>
           </div>
         </div>
         
         <div class="option_row">
-          <div class="option_name">Tooltip preferred position:</div>
+          <div class="option_name">__MSG_tooltipPrefPosition__:</div>
           <div class="option_picker">
             <input type="radio" name="position" value="above" id="position_above">
-            <label for="position_above">Above</label><br>
+            <label for="position_above">__MSG_Above__</label><br>
             <input type="radio" name="position" value="below" id="position_below">
-            <label for="position_below">Below</label>
+            <label for="position_below">__MSG_Below__</label>
           </div>
         </div>
 
         <div class="buttons">
-          <button id="save_button">Save</button>
-          <button id="reset_button">Reset</button>
-          <span id="save_status">Options saved.</span>
+          <button id="save_button">__MSG_Save__</button>
+          <button id="reset_button">__MSG_Reset__</button>
+          <span id="save_status">__MSG_optionsSaved__</span>
         </div>
       </form>
 

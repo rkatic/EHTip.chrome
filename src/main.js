@@ -9,15 +9,47 @@ var utils = require("utils"),
 	storage_async = require("storage/async"),
 	dictionary_async = require("dictionary/async"),
 	morfology = require("morfology"),
-	Emitter = require("events").Emitter;
+	Emitter = require("events").Emitter,
+	reLocalize = /__MSG_(.+?)__/g;
 
 bg.options = options;
+bg.require = require;
 
-bg.__defineGetter__('dictNames', function() {
+function replLocalize( str, name ) {
+	return chrome.i18n.getMessage( name ) || str;
+}
+
+
+bg.localizeDom = function( top ) {
+	var elements = top.getElementsByTagName("*"),
+		element, childs, node, text0, text1;
+	
+	for ( var i = 0; element = elements[i]; ++i ) {
+		childs = element.childNodes;
+		
+		for ( var j = 0; node = childs[j]; ++j ) {
+			if ( node.nodeType === 3 ) {
+				text0 = node.nodeValue;
+				text1 = text0.replace( reLocalize, replLocalize );
+				
+				if ( text0 !== text1 ) {
+					node.nodeValue = text1;
+				}
+			}
+		}
+	}
+}
+
+bg.getDictNames = function() {
 	return _builtinDicts.map(function( info ) {
 		return info.name;
 	});
-});
+};
+
+function localizedDictName( name ) {
+	return chrome.i18n.getMessage( name.replace(/-/g, '_') ) || name;
+}
+bg.localizedDictionaryName = localizedDictName;
 
 var _dicts = [],
 	_dictInfo,
@@ -174,16 +206,19 @@ function setButton( enabled ) {
 	chrome.browserAction.setIcon({
 		path: ( enabled ? "images/icon19.png" : "images/icon19-off.png" )
 	});
+	var msgName = enabled ? "disableTooltip_title" : "enableTooltip_title";
 	chrome.browserAction.setTitle({
-		title: ( enabled ? "Disable" : "Enable" ) + " EHTip Tooltip"
+		title: chrome.i18n.getMessage( msgName, [ manifest.name ] )
 	});
 }
+
 
 chrome.browserAction.onClicked.addListener(function() {
 	var o = options.load();
 	o["tooltip.enabled"] = !o["tooltip.enabled"];
 	options.save( o );
 });
+
 
 chrome.extension.onRequest.addListener(function( req, sender, send ) {
 	switch ( req.type ) {
@@ -305,6 +340,11 @@ function lookup( o, callback ) {
 			dicts.shift().lookup( terms, o.stopOnExact, error, collect );
 			
 		} else {
+			if ( o.localize ) {
+				results.forEach(function( res ) {
+					res.dict_localized = localizedDictName( res.dict );
+				});
+			}
 			callback( results );
 		}
 	}
