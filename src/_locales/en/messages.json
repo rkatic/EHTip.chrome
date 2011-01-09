@@ -27,13 +27,13 @@
 		"message": "Below"
 	},
 	"mode0_label": {
-		"message": "Display tooltip"
+		"message": "Do not display tooltip"
 	},
 	"mode1_label": {
 		"message": "Display tooltip only with"
 	},
 	"mode2_label": {
-		"message": "Do not display tooltip"
+		"message": "Display tooltip"
 	},
 	"Save": {
 		"message": "Save"

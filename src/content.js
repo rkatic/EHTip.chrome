@@ -111,6 +111,10 @@ function handleLookupResponse( res ) {
 		putResultsInTooltip( res );
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
 		
+		if ( _hold ) {
+			window.addEventListener("keydown", ABORT, true);
+		}
+		
 	} else {
 		_hold = false;
 	}
@@ -202,7 +206,10 @@ function abort() {
 }
 
 function ABORT() {
-	_hold = false;
+	if ( _hold ) {
+		window.removeEventListener("keydown", ABORT, true);
+		_hold = false;
+	}
 	abort();
 }
 

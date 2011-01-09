@@ -1,6 +1,3 @@
-//localStorage.clear();
-delete localStorage.dictInfo;
-
 var bg = module("main", function( bg, require ) {
 	
 var utils = require("utils"),
