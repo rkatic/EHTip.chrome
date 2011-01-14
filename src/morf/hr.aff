@@ -2,7 +2,6 @@
 # sintaksa: regularni_izraz [dio_za_dodat]
 # prva grupa u regularnom izrazu je i dio koji se brise
 
-# ovi sa početnim ^ su prefiksi
 PFX (je|ni|ne|ho|naj|pra|is)
 PFX (ne) i
 
@@ -50,8 +49,8 @@ SFX (če|ci|cima) k
 
 SFX (a|mo|te)
 
-SFX (gu) æi
-SFX (že(š|mo|te)) æi
+SFX (gu) ći
+SFX (že(š|mo|te)) ći
 
 SFX (e) i
 

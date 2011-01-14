@@ -146,9 +146,9 @@ function init() {
 	var prev_version = localStorage.version;
 	localStorage.version = manifest.version;
 	
-	if ( !prev_version || prev_version < manifest.version ) {
-		openOptionsPage();
-	}
+	//if ( !prev_version || prev_version < manifest.version ) {
+	//	openOptionsPage();
+	//}
 }
 
 	

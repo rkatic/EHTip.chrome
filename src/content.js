@@ -27,6 +27,9 @@ var	window = this,
 		ctrlKey: null,
 		metaKey: null
 	},
+	_bevent = {
+		target: null
+	}
 	undefined;
 
 
@@ -74,7 +77,7 @@ function handleOptions( options ) {
 					null;
 				
 				_stayMode = newValue;
-				applyListiners( window, newValue, howerListiners );
+				applyListiners( window, newValue, hoverListiners );
 				break;
 			
 			case "tooltip.onStay.delays":
@@ -112,7 +115,7 @@ function handleLookupResponse( res ) {
 		_tooltip.show( _rect, _options["tooltip.preferedPosition"], _noTooltipArrow );
 		
 		if ( _hold ) {
-			window.addEventListener("keydown", ABORT, true);
+			applyListiners( window, true, holdListiners );
 		}
 		
 	} else {
@@ -207,7 +210,7 @@ function abort() {
 
 function ABORT() {
 	if ( _hold ) {
-		window.removeEventListener("keydown", ABORT, true);
+		applyListiners( window, false, holdListiners );
 		_hold = false;
 	}
 	abort();
@@ -220,12 +223,24 @@ function applyListiners( target, add, map ) {
 	}
 }
 
+function isEventInTooltip( event ) {
+	return _hold && _tooltip && _tooltip.$box.contains( event.target );
+}
 
-var howerListiners = {
+var holdListiners = {
+"keyup": function( event ) {
+	if ( event.keyCode !== 17 && event.keyCode !== 224 ) {
+		ABORT();
+	}
+}
+};
+
+
+var hoverListiners = {
 "scroll": abort,
 "mousemove": function( event ) {
 	if ( _rect && (_explicit || !isExplicitEvent(event)) && isRectOverPoint(_rect, event.clientX, event.clientY)
-		|| _hold && _tooltip._content.contains(event.target) ) {
+		|| isEventInTooltip(event) ) {
 		return;
 	}
 	
@@ -323,8 +338,9 @@ function onMouseStay() {
 
 var selectListiners = {
 "mousedown": function( event ) {
-	if ( _hold && !_tooltip._content.contains(event.target)  ) {
-		ABORT();
+	if ( !isEventInTooltip(event) ) {
+		recObject( _bevent, event );
+		_hold && ABORT();
 	}
 },
 "mouseup": function( event ) {
@@ -342,11 +358,12 @@ var selectListiners = {
 };
 
 function onSelected() {
-	var selection = getSelectionFrom( _event.target );
+	var node = _bevent.target;
+	var selection = getSelectionFrom( node );
 	var selected = selection.toString();
 	if ( selected && selected.length < 50 ) {
 		ABORT();
-		if ( isInputElement(_event.target) || _event.target.contentDocument ) {
+		if ( isInputElement(node) || node.contentDocument ) {
 			_rect = new PointRect( _event.clientX, _event.clientY, 10 );
 			_noTooltipArrow = true;
 		} else {
@@ -375,7 +392,7 @@ var tooltipListiners = {
 	_ignoreNextMouseUp = true;
 	var name = event.target.tagName.toLowerCase();
 	if ( name === "b" || name === "span" ) {
-		if ( event.ctrlKey || event.button === 1 ) {
+		if ( event.button === 1 || isExplicitEvent(event) ) {
 			_noTooltipArrow = true;
 			_hold = true;
 			_explicit = true;
@@ -396,9 +413,10 @@ function getSelectionFrom( node ) {
 }
 
 function setSelection( text ) {
-	var selection = getSelectionFrom( _event.target ),
+	var node = _bevent.target,
+		selection = getSelectionFrom( node ),
 		selected = selection.toString(),
-		node, a, b, t, spaceLeft, spaceRight, value;
+		a, b, t, spaceLeft, spaceRight, value;
 	
 	if ( !selected ) {
 		return;
@@ -409,15 +427,17 @@ function setSelection( text ) {
 	selected = selected.slice( spaceLeft.length, -spaceRight.length || selected.length );
 	text = spaceLeft + toSameCaseAs( text, selected ) + spaceRight;
 	
-	if ( !isInputElement(_event.target) ) {
+	if ( !isInputElement(node) ) {
 		node = selection.anchorNode;
 		value = node.textContent;
-		a = selection.anchorOffset;
-		b = ( node === selection.focusNode ) ? selection.focusOffset : a;
-		if ( b < a ) {
-			t = a;
-			a = b;
-			b = t;
+		a = b = selection.anchorOffset;
+		if ( node === selection.focusNode ) {
+			b = selection.focusOffset;
+			if ( b < a ) {
+				t = a;
+				a = b;
+				b = t;
+			}
 		}
 		node.textContent = value.substring(0, a) + text + value.substring(b);
 		selection.collapse( node, a + text.length );
@@ -426,7 +446,6 @@ function setSelection( text ) {
 		} catch (e) {}
 		
 	} else {
-		node = _event.target;
 		value = node.value;
 		a = node.selectionStart;
 		b = node.selectionEnd;

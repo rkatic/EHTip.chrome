@@ -55,8 +55,6 @@ SFX [^aeiou](iness)
 SFX [aeiou]y(ness)
 SFX [^y](ness)
 
-SFX (\'s)
-
 SFX [^aeiou](able)
 SFX ee(able)
 SFX [^aeiou]e(able)
