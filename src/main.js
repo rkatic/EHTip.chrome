@@ -350,9 +350,6 @@ function lookup( o, callback ) {
 }
 
 
-function K( obj ) {
-	return !!obj;
-}
 
 function exactsFirst( res ) {
 	var exacts = [], others = [], r;

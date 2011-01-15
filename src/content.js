@@ -199,6 +199,9 @@ function abort() {
 	reqProcess.abort();
 	shrinkAnimation && shrinkAnimation.stop();
 	
+	// save memory
+	_event.target = null;
+	
 	if ( _tooltip && _tooltip.visible ) {
 		_tooltip.hide();
 	}
@@ -212,6 +215,7 @@ function ABORT() {
 	if ( _hold ) {
 		applyListiners( window, false, holdListiners );
 		_hold = false;
+		_bevent.target = null;
 	}
 	abort();
 }
@@ -327,6 +331,7 @@ function onMouseStay() {
 			//ABORT();
 			
 			_rect = rect;
+			_hold = false;
 			_explicit && _boxOutliner.show( boxRect );
 			shrinkAnimation && shrinkAnimation.play();
 			//console.log( term );
@@ -339,8 +344,8 @@ function onMouseStay() {
 var selectListiners = {
 "mousedown": function( event ) {
 	if ( !isEventInTooltip(event) ) {
-		recObject( _bevent, event );
 		_hold && ABORT();
+		recObject( _bevent, event );
 	}
 },
 "mouseup": function( event ) {
@@ -638,42 +643,42 @@ function PointRect( x, y, r ) {
 	this.width = r + r;
 }
 
-var globalizedRect = (function(){
-	
-	function proc( doc, frame, p ) {
-		var ok;
-		
-		if ( doc === frame.ownerDocument ) {
-			ok = true;
-			
-		} else {
-			var frames = doc.querySelectorAll('frame, iframe');
-			for ( var i = 0, l = frames.length; !ok && i < l; ++i ) {
-				var contentDoc = frames.contentDocument;
-				if ( contentDoc && proc(contentDoc, frame, p) ) {
-					ok = true;
-				}
-			}
-		}
-		
-		if ( ok ) {
-			p.x += frame.offsetLeft - doc.body.scrollLeft;
-			p.y += frame.offsetTop - doc.body.scrollTop;
-		}
-		
-		return ok;
-	}
-	
-	return function( rect, frame ) {
-		var p = { x: 0, y: 0 };
-		proc( document, frame, p );
-		return new MovedRect( rect, p.x, p.y );
-	};
-	
-})();
+//var globalizedRect = (function(){
+//	
+//	function proc( doc, frame, p ) {
+//		var ok;
+//		
+//		if ( doc === frame.ownerDocument ) {
+//			ok = true;
+//			
+//		} else {
+//			var frames = doc.querySelectorAll('frame, iframe');
+//			for ( var i = 0, l = frames.length; !ok && i < l; ++i ) {
+//				var contentDoc = frames.contentDocument;
+//				if ( contentDoc && proc(contentDoc, frame, p) ) {
+//					ok = true;
+//				}
+//			}
+//		}
+//		
+//		if ( ok ) {
+//			p.x += frame.offsetLeft - doc.body.scrollLeft;
+//			p.y += frame.offsetTop - doc.body.scrollTop;
+//		}
+//		
+//		return ok;
+//	}
+//	
+//	return function( rect, frame ) {
+//		var p = { x: 0, y: 0 };
+//		proc( document, frame, p );
+//		return new MovedRect( rect, p.x, p.y );
+//	};
+//	
+//})();
 
 var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
-var reWordExclude = /[\d“”]/;
+var reWordExclude = /[\d“”_]/;
 var reWordJoiner = /^[\s—\-_]+$/;
 
 function wordBound( str, p, inc ) {
