@@ -187,10 +187,10 @@ function abort() {
 		return;
 	}
 	
-	if ( _stayTimeoutId ) {
-		window.clearTimeout( _stayTimeoutId );
-		_stayTimeoutId = null;
-	}
+	//if ( _stayTimeoutId ) {
+	//	window.clearTimeout( _stayTimeoutId );
+	//	_stayTimeoutId = null;
+	//}
 	
 	_rect = null;
 	_hold = false;
@@ -218,6 +218,7 @@ function ABORT() {
 		_bevent.target = null;
 	}
 	abort();
+	mouseStay.abort();
 }
 
 function applyListiners( target, add, map ) {
@@ -255,12 +256,15 @@ var hoverListiners = {
 	if ( explicit || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
 		_explicit = explicit;
-		_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[explicit ? 0 : 1] );
+		mouseStay.delay( _stayDelays[explicit ? 0 : 1] );
+		//_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[explicit ? 0 : 1] );
+	} else {
+		mouseStay.abort();
 	}
 }
 };
 
-function onMouseStay() {
+var mouseStay = delayable(function onMouseStay() {
 	if ( _event.target && !isEditable(_event.target) ) {
 		var range = getRangeAtXY( _event.target, _event.clientX, _event.clientY );
 		if ( !range ) return;
@@ -338,7 +342,7 @@ function onMouseStay() {
 			lookup( term );
 		}
 	}
-}
+});
 
 
 var selectListiners = {
@@ -749,6 +753,38 @@ function trisCombinations( a, b, c ) {
 	rv.push( b );
 	
 	return rv;
+}
+
+function delayable( cb ) {
+	var timer_id, end_time;
+	
+	function timeout() {
+		var delta = end_time - Date.now();
+		
+		if ( delta > 0 ) {
+			timer_id = setTimeout( timeout, delta );
+		
+		} else {
+			timer_id = null;
+			cb();
+		}
+	}
+	
+	return {
+		delay: function( ms ) {
+			end_time = Date.now() + ms;
+			
+			if ( !timer_id ) {
+				timer_id = setTimeout( timeout, ms );
+			}
+		},
+		
+		abort: function() {
+			if ( timer_id ) {
+				clearTimeout( timer_id );
+			}
+		}
+	}
 }
 
 });
