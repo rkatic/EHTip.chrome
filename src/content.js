@@ -754,7 +754,7 @@ function trisCombinations( a, b, c ) {
 	return rv;
 }
 
-
+// https://gist.github.com/789582
 function debounce( callback, delay ) {
 	var timer_id, end_time, that, args, undef,
 		win = window,
