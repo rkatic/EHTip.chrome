@@ -9,7 +9,6 @@ var	window = this,
 		"tooltip.onSelect": 0
 	},
 	_tooltip,
-	_stayTimeoutId = null,
 	_rect = null,
 	_boxOutliner = null,
 	_stayMode,
@@ -256,15 +255,15 @@ var hoverListiners = {
 	if ( explicit || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
 		_explicit = explicit;
-		mouseStay.delay( _stayDelays[explicit ? 0 : 1] );
-		//_stayTimeoutId = window.setTimeout( onMouseStay, _stayDelays[explicit ? 0 : 1] );
+		mouseStay.delay = _stayDelays[ explicit ? 0 : 1 ];
+		mouseStay();
 	} else {
 		mouseStay.abort();
 	}
 }
 };
 
-var mouseStay = delayable(function onMouseStay() {
+var mouseStay = debounce(function() {
 	if ( _event.target && !isEditable(_event.target) ) {
 		var range = getRangeAtXY( _event.target, _event.clientX, _event.clientY );
 		if ( !range ) return;
@@ -755,36 +754,48 @@ function trisCombinations( a, b, c ) {
 	return rv;
 }
 
-function delayable( cb ) {
-	var timer_id, end_time;
+
+function debounce( callback, delay ) {
+	var timer_id, end_time, that, args, undef,
+		win = window,
+		now = Date.now || function(){ return +new Date(); };
 	
 	function timeout() {
-		var delta = end_time - Date.now();
+		var delta = end_time - now();
 		
 		if ( delta > 0 ) {
-			timer_id = setTimeout( timeout, delta );
+			timer_id = win.setTimeout( timeout, delta );
 		
 		} else {
-			timer_id = null;
-			cb();
+			timer_id = undef;
+			debounce.callback.apply( that, args );
 		}
 	}
 	
-	return {
-		delay: function( ms ) {
-			end_time = Date.now() + ms;
-			
-			if ( !timer_id ) {
-				timer_id = setTimeout( timeout, ms );
-			}
-		},
+	function debounce() {
+		var t = end_time;
 		
-		abort: function() {
-			if ( timer_id ) {
-				clearTimeout( timer_id );
-			}
+		end_time = now() + debounce.delay;
+		that = this;
+		args = arguments;
+		
+		if ( !timer_id || end_time < t ) {
+			timer_id && win.clearTimeout( timer_id );
+			timer_id = win.setTimeout( timeout, debounce.delay );
 		}
 	}
+	
+	debounce.delay = delay;
+	debounce.callback = callback;
+	
+	debounce.abort = function() {
+		if ( timer_id ) {
+			win.clearTimeout( timer_id );
+			timer_id = that = args = undef;
+		}
+	};
+	
+	return debounce;
 }
 
 });
