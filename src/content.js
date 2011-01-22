@@ -757,18 +757,18 @@ function trisCombinations( a, b, c ) {
 // https://gist.github.com/789582
 function debounce( callback, delay ) {
 	var timer_id, end_time, that, args, undef,
-		win = window,
 		now = Date.now || function(){ return +new Date(); };
 	
 	function timeout() {
 		var delta = end_time - now();
 		
 		if ( delta > 0 ) {
-			timer_id = win.setTimeout( timeout, delta );
+			timer_id = setTimeout( timeout, delta );
 		
 		} else {
-			timer_id = undef;
-			debounce.callback.apply( that, args );
+			var t = that, a = args;
+			timer_id = that = args = undef;
+			debounce.callback.apply( t, a );
 		}
 	}
 	
@@ -780,8 +780,8 @@ function debounce( callback, delay ) {
 		args = arguments;
 		
 		if ( !timer_id || end_time < t ) {
-			timer_id && win.clearTimeout( timer_id );
-			timer_id = win.setTimeout( timeout, debounce.delay );
+			timer_id && clearTimeout( timer_id );
+			timer_id = setTimeout( timeout, debounce.delay );
 		}
 	}
 	
@@ -790,12 +790,13 @@ function debounce( callback, delay ) {
 	
 	debounce.abort = function() {
 		if ( timer_id ) {
-			win.clearTimeout( timer_id );
+			clearTimeout( timer_id );
 			timer_id = that = args = undef;
 		}
 	};
 	
 	return debounce;
 }
+
 
 });
