@@ -759,44 +759,43 @@ function debounce( callback, delay ) {
 	var timer_id, end_time, that, args, undef,
 		now = Date.now || function(){ return +new Date(); };
 	
-	function timeout() {
+	function onTimeout() {
 		var delta = end_time - now();
 		
 		if ( delta > 0 ) {
-			timer_id = setTimeout( timeout, delta );
+			timer_id = setTimeout( onTimeout, delta );
 		
 		} else {
 			var t = that, a = args;
 			timer_id = that = args = undef;
-			debounce.callback.apply( t, a );
+			proxy.callback.apply( t, a );
 		}
 	}
 	
-	function debounce() {
+	var proxy = function() {
 		var t = end_time;
 		
-		end_time = now() + debounce.delay;
+		end_time = now() + proxy.delay;
 		that = this;
 		args = arguments;
 		
 		if ( !timer_id || end_time < t ) {
 			timer_id && clearTimeout( timer_id );
-			timer_id = setTimeout( timeout, debounce.delay );
+			timer_id = setTimeout( onTimeout, proxy.delay );
 		}
-	}
+	};
 	
-	debounce.delay = delay;
-	debounce.callback = callback;
+	proxy.delay = delay;
+	proxy.callback = callback;
 	
-	debounce.abort = function() {
+	proxy.abort = function() {
 		if ( timer_id ) {
 			clearTimeout( timer_id );
 			timer_id = that = args = undef;
 		}
 	};
 	
-	return debounce;
+	return proxy;
 }
-
 
 });
