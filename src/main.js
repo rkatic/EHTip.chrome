@@ -114,7 +114,7 @@ function init() {
 		info = b[name];
 		
 		morf = info.morf ?
-			morfology.Transformations.fromFile( './morf/' + info.morf + '.aff' ) :
+			morfology.Transformations.fromFile( './morf/' + info.morf + '.affx' ) :
 			null;
 			
 		dict = new dictionary_async.Dictionary( info.name, morf );
