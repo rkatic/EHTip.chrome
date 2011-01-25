@@ -1,4 +1,7 @@
 {
+	"description": {
+		"message": "Englesko-Hrvatski rječnik u balončiću."
+	},
 	"enableTooltip_title": {
 		"message": "Aktiviraj $1 prijevod"
 	},

@@ -1,4 +1,7 @@
 {
+	"description": {
+		"message": "English-Croatian dictionary in a tooltip."
+	},
 	"enableTooltip_title": {
 		"message": "Enable $1 Tooltip"
 	},

@@ -70,42 +70,44 @@ module('dictionary/async', function( exports, require ) {
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
-			function push( originalTerm, term, value, parts ) {
-				results.push({
-					dict: self.name,
-					term: term,
-					definitions: JSON.parse( value ),
-					parts: parts,
-					originalTerm: originalTerm
-				});
-			}
-			
-			function procTerm( originalTerm ) {
-				done[ originalTerm ] = true;
+			function handle( originalTerm, term, dashed, morf ) {
+				if ( term in done ) {
+					return;
+				}
+				done[ term ] = true;
 				
-				t.getValue(originalTerm, function( value ) {					
+				t.getValue(term, function( value ) {
 					if ( value ) {
-						push( originalTerm, originalTerm, value );
-					}
-					
-					if ( stopOnExact && value || !self._morfology ) {
-						return;
-					}
-					
-					self._morfology.generate(originalTerm, function( term, parts ) {
-						if ( term in done ) return;
-						done[ term ] = true;
-						t.getValue(term, function( value ) {
-							value && push( originalTerm, term, value, parts );
+						results.push({
+							dict: self.name,
+							term: term,
+							definitions: JSON.parse( value ),
+							originalTerm: originalTerm
 						});
-					});
+						
+						if ( stopOnExact && term === originalTerm ) {
+							return;
+						}
+					}
+					
+					if ( dashed ) {
+						handle( originalTerm, term.replace(/-/g, "") );
+					}
+					
+					if ( morf ) {
+						morf.generate(term, function( term ) {
+							handle( originalTerm, term, dashed );
+						});
+					}
 				});
 			}
 			
 			this._dict.readTransaction(
 				function( tr ) {
-					t = tr
-					terms.forEach( procTerm );
+					t = tr;
+					terms.forEach(function( term ) {
+						handle( term, term, term.indexOf('-'), self._morfology );
+					});
 				},
 				errorCallback,
 				function() {

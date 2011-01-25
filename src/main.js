@@ -375,7 +375,7 @@ function normalizedTerms( terms ) {
 		t = terms[i].replace(/[\s—\-_]+/g, ' ').trim().toLowerCase();
 		
 		if ( t.indexOf(' ') !== -1 ) {
-			rv.push( t.replace(/ /g, '-'), t, t.replace(/ /g, '') );
+			rv.push( t.replace(/ /g, '-'), t );
 			
 		} else {
 			rv.push( t );

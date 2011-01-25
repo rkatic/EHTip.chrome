@@ -1,6 +1,7 @@
 {
-	"name": "EHTip",
+	"name": "EHTip (bender)",
 	"version": "0.2.7",
+	"description": "__MSG_description__",
 	"update_url": "http://bender.fesb.hr/~robert/ehtip/crx/update.xml",
 	"permissions": [
 		"tabs",

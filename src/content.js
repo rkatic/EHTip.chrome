@@ -126,7 +126,7 @@ function handleLookupResponse( res ) {
 }
 
 function putResultsInTooltip( results ) {
-	var span, t, b, dictNameDiv,
+	var span, t, b, dictNameDiv, exact,
 		w = _tooltip.createElement('div');
 	
 	if ( _hold ) {
@@ -147,13 +147,20 @@ function putResultsInTooltip( results ) {
 			w.appendChild( _tooltip._sep_.cloneNode(false) );
 		}
 		
+		exact = results[i].term === results[i].originalTerm;
+		
 		b = _tooltip._b_.cloneNode(false);
-		t = results[i].term;
-		if ( (results[i].parts || '').length > 1 ) {
-			t = '(' + t + ')';
+		b.textContent = results[i].term;
+		
+		if ( !exact ) {
+			w.appendChild( document.createTextNode('(') );
 		}
-		b.textContent = t;
+		
 		w.appendChild( b );
+		
+		if ( !exact ) {
+			w.appendChild( document.createTextNode(')') );
+		}
 		
 		if ( _hold ) {
 			w.appendChild( document.createTextNode(': ') );

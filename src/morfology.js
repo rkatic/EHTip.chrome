@@ -3,6 +3,8 @@ module('morfology', function( exports, require ) {
 	var utils = require("utils"),
 		io = require("io");
 	
+	var reSplitWords = /(?:[^\w\u00c0-\uFFFF\']|[\d“”_])+/g;
+
 	exports.Transformations = Class({
 		
 		constructor: function( data ) {
@@ -48,28 +50,36 @@ module('morfology', function( exports, require ) {
 		},
 		
 		generate: function( str, callback ) {			
-			var sufData = [], preData = [], arr, t, remove, data, suffix, prefix, mid;
+			var sufData = [], preData = [], arr, rm, t, undef;
+			
+			var first, last, mid, left = "", right = "",
+				words = str.split( reSplitWords );
+			
+			if ( words.length === 1 ) {
+				first = last = str;
+			} else {
+				first = words[0];
+				last = words[ words.length - 1 ];
+				mid = str.slice( first.length, -last.length || undef );
+				left = first + mid;
+				right = mid + last;
+			}
 			
 			arr = this._sfx;
 			for ( var i = 0, l = arr.length; i < l; ++i ) {
-				if ( arr[i].re.test( str ) ) {
-					data = { remove: RegExp.$1 };
-					suffix = '';
-					mid = str;
-					t = arr[i];
+				if ( arr[i].re.test( last ) ) {
+					rm = RegExp.$1 ? RegExp.$1.length : 0;
+					add = arr[i].add || "";
 					
-					if ( data.remove ) {
-						mid = str.slice( 0, -data.remove.length );
-					}
+					t = ( rm ? last.slice( 0, -rm ) : last ) + add;
 					
-					if ( t.add ) {
-						suffix = t.add;
-						data.add = suffix;
-					}
+					sufData.push({
+						rm: rm,
+						add: add,
+						right: t
+					});
 					
-					sufData.push( data );
-					
-					if ( callback( mid + suffix, [ mid, suffix ] ) === false ) {
+					if ( callback( left + t ) === false ) {
 						return;
 					}
 				}
@@ -77,24 +87,19 @@ module('morfology', function( exports, require ) {
 			
 			arr = this._pfx;
 			for ( var i = 0, l = arr.length; i < l; ++i ) {
-				if ( arr[i].re.test( str ) ) {
-					data = { remove: RegExp.$1 };
-					mid = str;
-					prefix = '';
-					t = arr[i];
+				if ( arr[i].re.test( first ) ) {
+					rm = RegExp.$1 ? RegExp.$1.length : 0;
+					add = arr[i].add || "";
 					
-					if ( data.remove ) {
-						mid = str.substr( data.remove.length );
-					}
+					t = add + ( rm ? first.substr( rm ) : first );
 					
-					if ( t.add ) {
-						prefix = t.add;
-						data.add = prefix;
-					}
+					preData.push({
+						rm: rm,
+						add: add,
+						left: t
+					});
 					
-					preData.push( data );
-					
-					if ( callback( prefix + mid, [ prefix, mid ] ) === false ) {
+					if ( callback( t + right ) === false ) {
 						return;
 					}
 				}
@@ -106,19 +111,21 @@ module('morfology', function( exports, require ) {
 
 			for ( var i = 0, ii = sufData.length; i < ii; ++i ) {
 				for ( var j = 0, jj = preData.length; j < jj; ++j ) {
-					suffix = sufData[i].add || '';
-					prefix = preData[j].add || '';
-					mid = str;
+					var sd = sufData[i], pd = preData[j];
+					t = undef;
 					
-					if ( preData[j].remove ) {
-						mid = mid.substr( preData[j].remove.length );
+					if ( mid ) {
+						t = pd.left + mid + sd.right;
+						
+					} else {
+						t = str.slice( pd.rm, -sd.rm || undef );
+						
+						if ( t ) {
+							t = pd.add + t + sd.add;
+						}
 					}
 					
-					if ( sufData[i].remove ) {
-						mid = mid.slice( 0, -sufData[i].remove.length );
-					}
-					
-					if ( callback( prefix + mid + suffix, [ prefix, mid, suffix ] ) === false ) {
+					if ( t && callback( t ) === false ) {
 						return;
 					}
 				}
