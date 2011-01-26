@@ -305,6 +305,56 @@ function parse( data, sep, keyIndex, valueIndex ) {
 	return map;
 }
 
+//bg.calc = function( index ) {
+//	console.log("loading lines...");
+//	var lines = utils.splitLines( io.readFile( _dictInfo[0].path ) );
+//	
+//	console.log("buiilding map...");
+//	var map = utils.HASH();
+//	for ( var i = 0, l = lines.length; i < l; ++i ) {
+//		var term = lines[i].split('\t')[ index ];
+//		if ( !term ) {
+//			continue;
+//		}
+//		
+//		var key = term
+//			.trim()
+//			.replace(/(?:[^\w\u00c0-\uFFFF\']|[\d“”_])+/g, '')
+//			.toLowerCase();
+//			
+//		var d = map[ key ];
+//		
+//		if ( !d ) {
+//			d = utils.HASH();
+//			map[ key ] = d;
+//		}
+//		
+//		d[ term ] = true;
+//	}
+//	console.log("("+l+" terms)");
+//	
+//	console.log("building numeric map...");
+//	var num_map = utils.HASH();
+//	for ( var key in map ) {
+//		num_map[ key ] = Object.keys( map[key] ).length;
+//	}
+//	
+//	console.log("retriving keys...");
+//	var keys = Object.keys( num_map );
+//	console.log("("+keys.length+" keys)");
+//	
+//	console.log("sorting keys by number of terms...");
+//	keys.sort(function(a, b){
+//		return num_map[b] - num_map[a];
+//	});
+//	
+//	return {
+//		map: map,
+//		num_map: num_map,
+//		keys: keys
+//	};
+//};
+
 
 function lookup( o, callback ) {
 	var	dicts = o.dicts || _dicts,
