@@ -36,19 +36,6 @@ module('morfology', function( exports, require ) {
 			});
 		},
 		
-		generateAll: function( str ) {
-			var results = [];
-			
-			this.generate( str, function( term, defs, parts ) {
-				results.push({
-					term: term,
-					parts: parts
-				});
-			});
-			
-			return results;
-		},
-		
 		generate: function( str, callback ) {			
 			var sufData = [], preData = [], arr, rm, t, undef;
 			
