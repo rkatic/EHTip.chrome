@@ -28,7 +28,7 @@ def build(root):
     pos = len(root)
     
     dirname, basename = os.path.split(root)
-    basename = '%s-%s.zip' % ( manifest['name'], manifest['version'].replace('.', '-') )
+    basename = '%s-%s.zip' % ( manifest['name'], manifest['version'] )
     
     print basename
     

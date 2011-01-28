@@ -55,7 +55,7 @@ var _dicts = [],
 	_builtinDicts = [
 		{
 			name: 'en-hr',
-			revision: 2,
+			revision: 3,
 			morf: 'en',
 			path: './EH/EH-utf8.Txt',
 			sep: '\t',
@@ -64,7 +64,7 @@ var _dicts = [],
 		},
 		{
 			name: 'hr-en',
-			revision: 2,
+			revision: 3,
 			morf: 'hr',
 			path: './EH/EH-utf8.Txt',
 			sep: '\t',
@@ -130,10 +130,12 @@ function init() {
 	
 	utils.saveObject('dicts', _dictInfo);
 
-	if ( toBuild ) {
+	if ( toBuild.length ) {
 		window.setTimeout(function() {
+			var start = Date.now();
 			reloadDicts( toBuild, function() {
 				utils.saveObject('dicts', _dictInfo);
+				console.log( (Date.now() - start) / 1000 );
 			});
 		}, 1);
 	}
@@ -255,7 +257,7 @@ function reloadDicts( dicts, callback ) {
 			return;
 		}
 		
-		console.log('Reloadin dictionary "' + dict.name + '".')
+		console.log('Reloadin dictionary "' + dict.name + '"...')
 		
 		info = _findByName_.call( _dictInfo, dict.name );
 		
@@ -289,7 +291,7 @@ function parse( data, sep, keyIndex, valueIndex ) {
 	for ( var i = 0, l = lines.length; i < l; ++i ) {
 		parts = lines[i].split( sep );
 		
-		key = ( parts[ keyIndex ] || "" ).trim().toLowerCase();
+		key = ( parts[ keyIndex ] || "" ).trim();
 		value = ( parts[ valueIndex ] || "" ).trim();
 		
 		if ( key && value ) {
@@ -319,13 +321,14 @@ function parse( data, sep, keyIndex, valueIndex ) {
 //		
 //		var key = term
 //			.trim()
+//			.replace(/\s*[\(\[].*/, '')
 //			.replace(/(?:[^\w\u00c0-\uFFFF\']|[\d“”_])+/g, '')
 //			.toLowerCase();
 //			
 //		var d = map[ key ];
 //		
 //		if ( !d ) {
-//			d = utils.HASH();
+//			d = {};
 //			map[ key ] = d;
 //		}
 //		
@@ -335,8 +338,16 @@ function parse( data, sep, keyIndex, valueIndex ) {
 //	
 //	console.log("building numeric map...");
 //	var num_map = utils.HASH();
+//	var sum = utils.HASH();
 //	for ( var key in map ) {
-//		num_map[ key ] = Object.keys( map[key] ).length;
+//		var n = Object.keys( map[key] ).length;
+//		num_map[ key ] = n;
+//		
+//		if ( n in sum ) {
+//			++sum[n];
+//		} else {
+//			sum[n] = 1;
+//		}
 //	}
 //	
 //	console.log("retriving keys...");
@@ -351,14 +362,15 @@ function parse( data, sep, keyIndex, valueIndex ) {
 //	return {
 //		map: map,
 //		num_map: num_map,
-//		keys: keys
+//		keys: keys,
+//		sum: sum
 //	};
 //};
 
 
 function lookup( o, callback ) {
 	var	dicts = o.dicts || _dicts,
-		terms = normalizedTerms( typeof o.term === "string" ? [o.term] : o.term ),
+		terms = typeof o.term === "string" ? [o.term] : o.term,
 		results = [];
 	
 	dicts = ( typeof dicts[0] === "string" ) ?
@@ -384,7 +396,17 @@ function lookup( o, callback ) {
 		}
 		
 		if ( dicts.length ) {
-			dicts.shift().lookup( terms, o.stopOnExact, error, collect );
+			var dict = dicts.shift(),
+				info = _findByName_.call( _dictInfo, dict.name );
+			
+			if ( info.ready ) {
+				dict.lookup( terms, o.stopOnExact, error, collect );
+			} else {
+				collect([{
+					message: chrome.i18n.getMessage("dict_not_ready_try_later"),
+					dict: dict.name
+				}]);
+			}
 			
 		} else {
 			if ( o.localize ) {
@@ -407,32 +429,10 @@ function exactsFirst( res ) {
 	for ( var i = 0, l = res.length; i < l; ++i ) {
 		r = res[i];
 		
-		if ( r.originalTerm && r.originalTerm !== r.term ) {
-			others.push( r );
-			
-		} else {
-			exacts.push( r );
-		}
+		( r.exact !== false ? exacts : others ).push( r );
 	}
 	
 	return exacts.concat( others );
-}
-
-function normalizedTerms( terms ) {
-	var t, rv = [];
-	
-	for ( var i = 0, l = terms.length; i < l; ++i ) {
-		t = terms[i].replace(/[\s—\-_]+/g, ' ').trim().toLowerCase();
-		
-		if ( t.indexOf(' ') !== -1 ) {
-			rv.push( t.replace(/ /g, '-'), t );
-			
-		} else {
-			rv.push( t );
-		}
-	}
-	
-	return rv;
 }
 
 

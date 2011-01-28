@@ -1,10 +1,42 @@
 module('dictionary/async', function( exports, require ) {
 	
 	var utils = require("utils"),
-		storage = require("storage/async");
+		storage = require("storage/async"),
+		
+		common = require("common"),
+		reNotWord = common.reNotWord,
+		reNotWordG = common.reNotWordG,
+		reWordJoinerG = common.reWordJoinerG,
+		clean = common.cleanTerm,
+		
+		_hasOwn_ = Object.prototype.hasOwnProperty;
+		
+	function norm( s ) {
+		var words = clean( s ).split( reWordJoinerG );
+		for ( var i = 0, l = words.length; i < l; ++i ) {
+			words[i] = words[i].replace( reNotWordG, "" );
+		}
+		return words.join(" ").toLowerCase();
+	}
+	
+	function tokey( s ) {
+		return clean( s ).replace(reNotWordG, "").toLowerCase();
+	}
+	
+	function normToKey( s ) {
+		return s.replace(/ /g, "");
+	}
+	
+	function testChange( s, left, right ) {
+		return !(
+			left && reNotWord.test( s.substr(0, left.to) ) ||
+			right && reNotWord.test( s.slice(-right.to) )
+		);
+	}
+	
 	
 	var undefined;
-	const DB_SIZE = 2 * 1024 * 1024;
+	const DB_SIZE = 5 * 1024 * 1024;
 	
 	exports.Dictionary = Class({
 		
@@ -15,40 +47,50 @@ module('dictionary/async', function( exports, require ) {
 		},
 		
 		get: function( term, errorCallback, callback ) {
-			this._dict.getValue(term, errorCallback, function( value ) {
-				callback( value ? JSON.parse(value) : undefined );
+			this._dict.getValue(tokey(term), errorCallback, function( value ) {
+				if ( value ) {
+					var d = JSON.parse( value );
+					
+					if ( d && _hasOwn_.call(d, term) ) {
+						value = d[ term ];
+					}
+				}
+				
+				callback( value || undefined );
 			});
 		},
 		
-		map: function( terms, errorCallback, callback ) {
-			var results = [];
+		set: function( term, def, errorCallback, callback ) {
+			var key = tokey( term );
 			
-			function push( value ) {
-				results.push( value ? JSON.parse(value) : undefined );
-			}
-			
-			this._dict.readTransaction(
+			this._dict.transaction(
 				function( t ) {
-					for ( var i = 0, l = terms.length; i < l; ++i ) {
-						t.getValue( terms[i], push );
-					}
+					t.getValue(key, function( value ) {
+						var d = value ? JSON.parse( value ) : {};
+						d[ term ] = def;
+						t.setValue( key, JSON.stringify(d) );
+					});
 				},
 				errorCallback,
-				function() {
-					callback( results );
-				}
+				callback
 			);
 		},
 		
-		set: function( term, def, errorCallback, callback ) {
-			this._dict.set( term, JSON.stringify( def ), errorCallback, callback );
-		},
-		
+		// WARNING: not safe if not empty
 		setFromObject: function( obj, errorCallback, callback ) {
-			var hash = utils.HASH();
+			var k, d, hash = utils.HASH();
 			
-			for ( var key in obj ) {
-				hash[ key ] = JSON.stringify( obj[ key ] );
+			for ( var term in obj ) {
+				k = tokey( term );
+				d = hash[ k ];
+				if ( !d ) {
+					hash[ k ] = d = {};
+				}
+				d[ term ] = obj[ term ];
+			}
+			
+			for ( k in hash ) {
+				hash[k] = JSON.stringify( hash[k] );
 			}
 			
 			this._dict.updateWithObject( hash, errorCallback, callback );
@@ -65,38 +107,54 @@ module('dictionary/async', function( exports, require ) {
 		lookup: function( terms, stopOnExact, errorCallback, callback ) {
 			var self = this,
 				results = [],
-				done = utils.HASH(),
 				t;
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
-			function handle( originalTerm, term, dashed, morf ) {
-				if ( term in done ) {
-					return;
-				}
-				done[ term ] = true;
+			function handle( original_term, norm_term, simple, morf, leftChange, rightChange, done ) {			
+				var key_term = normToKey( norm_term );
+				done = done || utils.HASH();
 				
-				t.getValue(term, function( value ) {
+				t.getValue(key_term, function( value ) {
 					if ( value ) {
-						results.push({
-							dict: self.name,
-							term: term,
-							definitions: JSON.parse( value ),
-							originalTerm: originalTerm
-						});
+						var d = JSON.parse( value ),
+							exact = !leftChange && !rightChange,
+							k, norm_k;
 						
-						if ( stopOnExact && term === originalTerm ) {
+						for ( k in d ) {
+							if ( k in done ) {
+								continue;
+							}
+							done[ k ] = true;
+							
+							if ( !simple ) {
+								norm_k = norm( k );
+								
+								if ( norm_k !== norm_term && norm_k !== key_term ||
+									!exact && !testChange(norm_k, leftChange, rightChange) ) {
+									continue;
+								}
+							}
+								
+							results.push({
+								dict: self.name,
+								term: k,
+								definitions: d[ k ],
+								original_term: original_term,
+								exact: exact
+							});
+						}
+						
+						if ( stopOnExact && exact ) {
 							return;
 						}
 					}
 					
-					if ( dashed ) {
-						handle( originalTerm, term.replace(/-/g, "") );
-					}
-					
 					if ( morf ) {
-						morf.generate(term, function( term ) {
-							handle( originalTerm, term, dashed );
+						morf.generate(norm_term, function( term, leftChange, rightChange ) {
+							if ( simple || testChange(norm_term, leftChange, rightChange) ) {
+								handle( original_term, term, simple, null, leftChange, rightChange, done );
+							}
 						});
 					}
 				});
@@ -106,7 +164,8 @@ module('dictionary/async', function( exports, require ) {
 				function( tr ) {
 					t = tr;
 					terms.forEach(function( term ) {
-						handle( term, term, term.indexOf('-'), self._morfology );
+						var norm_term = norm( term );
+						handle( term, norm_term, norm_term.indexOf(" ") === -1, self._morfology );
 					});
 				},
 				errorCallback,

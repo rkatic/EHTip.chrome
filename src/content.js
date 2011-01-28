@@ -1,6 +1,11 @@
 module("content", function( exports, require ) {
 	
-var shapes = require("shapes");
+var shapes = require("shapes"),
+	common = require("common"),
+	reNotWord = common.reNotWord,
+	reWordJoiner = common.reWordJoiner,
+	cleanTerm = common.cleanTerm;
+
 	
 var	window = this,
 	document = window.document,
@@ -99,7 +104,7 @@ function lookup( term, callback ) {
 		{
 			type: "lookup",
 			term: term,
-			limit: _options["tooltip.limit"],
+			limit: !_explicit ? _options["tooltip.limit"] : 0,
 			dicts: _explicit ? null : _options.implicit_dicts,
 			stopOnExact: !_explicit,
 			localize: true
@@ -126,7 +131,7 @@ function handleLookupResponse( res ) {
 }
 
 function putResultsInTooltip( results ) {
-	var span, t, b, dictNameDiv, exact,
+	var span, t, b, dictNameDiv, not_exact,
 		w = _tooltip.createElement('div');
 	
 	if ( _hold ) {
@@ -147,35 +152,37 @@ function putResultsInTooltip( results ) {
 			w.appendChild( _tooltip._sep_.cloneNode(false) );
 		}
 		
-		exact = results[i].term === results[i].originalTerm;
+		not_exact = results[i].exact === false;
 		
 		b = _tooltip._b_.cloneNode(false);
-		b.textContent = results[i].term;
+		b.textContent = results[i].term || results[i].message;
 		
-		if ( !exact ) {
+		if ( not_exact ) {
 			w.appendChild( document.createTextNode('(') );
 		}
 		
 		w.appendChild( b );
 		
-		if ( !exact ) {
+		if ( not_exact ) {
 			w.appendChild( document.createTextNode(')') );
 		}
 		
-		if ( _hold ) {
-			w.appendChild( document.createTextNode(': ') );
-			var defs = results[i].definitions;
-			for ( var j = 0, n = defs.length; j < n; ++j ) {
-				if ( j !== 0 ) {
-					w.appendChild( document.createTextNode(', ') );
+		if ( results[i].definitions ) {
+			if ( _hold ) {
+				w.appendChild( document.createTextNode(': ') );
+				var defs = results[i].definitions;
+				for ( var j = 0, n = defs.length; j < n; ++j ) {
+					if ( j !== 0 ) {
+						w.appendChild( document.createTextNode(', ') );
+					}
+					t = span.cloneNode(false);
+					t.textContent = defs[j];
+					w.appendChild( t );
 				}
-				t = span.cloneNode(false);
-				t.textContent = defs[j];
-				w.appendChild( t );
+			} else {
+				t = ': ' + results[i].definitions.join(', ');
+				w.appendChild( document.createTextNode( t ) );
 			}
-		} else {
-			t = ': ' + results[i].definitions.join(', ');
-			w.appendChild( document.createTextNode( t ) );
 		}
 		
 		if ( dictNameDiv ) {
@@ -281,7 +288,7 @@ var mouseStay = debounce(function() {
 		var a, b, aj, bj, boxRect, rect;
 		var term, leftWord, rightWord;
 		
-		var overChar = isWord( str[offset] );
+		var overChar = !reNotWord.test( str[offset] );
 		
 		if ( overChar ) {
 			a = wordBound( str, offset, -1 );
@@ -414,7 +421,7 @@ var tooltipListiners = {
 			lookup( event.target.textContent );
 		
 		} else {
-			setSelection( event.target.textContent );
+			setSelection( cleanTerm(event.target.textContent) );
 			ABORT();
 		}
 	}
@@ -476,13 +483,13 @@ function setSelection( text ) {
 
 function toSameCaseAs( str, sample ) {
 	if ( sample.toLowerCase() === sample ) {
-		return str.toLowerCase();
+		return str;
 	}
 	if ( sample.toUpperCase() === sample && sample.length > 1 ) {
 		return str.toUpperCase();
 	}
 	if ( sample[0].toUpperCase() === sample[0] ) {
-		return str[0].toUpperCase() + str.substr(1).toLowerCase();
+		return str[0].toUpperCase() + str.substr(1);
 	}
 	return str;
 }
@@ -687,10 +694,6 @@ function PointRect( x, y, r ) {
 //	
 //})();
 
-var reWordInclude = /^[\w\u00c0-\uFFFF\']+$/;
-var reWordExclude = /[\d“”_]/;
-var reWordJoiner = /^[\s—\-_]+$/;
-
 function wordBound( str, p, inc ) {
 	var	oldp = p,
 		c = str[p],
@@ -700,9 +703,9 @@ function wordBound( str, p, inc ) {
 	
 	for ( ; ; p += inc ) {
 		c = str[ p + next ];
-		if ( !c || reWordExclude.test(c) ) break;
+		if ( !c || reNotWord.test(c) ) break;
 		cc = charCase( c );
-		if ( !cc && !reWordInclude.test(c) || pc === -cc && cc === nc ) break;
+		if ( pc === -cc && cc === nc ) break;
 		pc = cc;
 	}
 	
@@ -732,11 +735,6 @@ function passRightWordJoiner( str, p ) {
 	}
 	return -1;
 }
-
-function isWord(s) {
-	return reWordInclude.test(s) && !reWordExclude.test(s);
-}
-
 
 function charCase( c ) {
 	var upper = c.toUpperCase();

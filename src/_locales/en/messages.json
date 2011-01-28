@@ -52,5 +52,8 @@
 	},
 	"hr_en": {
 		"message": "Croatian - English"
+	},
+	"dict_not_ready_try_later": {
+		"message": "Dictionary not ready. Try again later."
 	}
 }

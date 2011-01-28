@@ -52,6 +52,9 @@
 	},
 	"hr_en": {
 		"message": "Hrvatski - Engleski"
+	},
+	"dict_not_ready_try_later": {
+		"message": "Rječnik nije spreman. Pokušati opet kasnije."
 	}
 }
 

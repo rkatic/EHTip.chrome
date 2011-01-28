@@ -153,3 +153,17 @@ module("utils", function( utils ) {
 	
 	utils.keys = Object.keys;
 });
+
+module("common", function( exports ) {
+	
+	exports.reNotWord = /[^\w\u00c0-\uFFFF\']|[\d“”_]/;
+	exports.reNotWordG = /(?:[^\w\u00c0-\uFFFF\']|[\d“”_])+/g;
+	
+	exports.reWordJoiner = /[\s—\-_]+/;
+	exports.reWordJoinerG = /[\s—\-_]+/g;
+	
+	exports.cleanTerm = function( term ) {
+		return term.replace(/[\(\[\{].*/g, "").trim();
+	};
+	
+});
