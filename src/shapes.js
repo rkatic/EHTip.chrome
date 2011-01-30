@@ -87,8 +87,8 @@ exports.Tooltip = Class( Shape, {
 		s.padding = "7px";
 		s.maxWidth = "250px";
 		s.zIndex = "99992";
-		s.setProperty && s.setProperty("-webkit-border-radius", "5px", null);
-		s.setAttribute && s.setAttribute("border-radius", "5px");
+		s.setProperty && s.setProperty("-webkit-border-radius", "8px", null);
+		s.setAttribute && s.setAttribute("border-radius", "8px");
 		this.$box.appendChild( this._content );
 		
 		this._b_ = this.createElement('b');
