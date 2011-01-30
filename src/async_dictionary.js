@@ -16,7 +16,7 @@ module('dictionary/async', function( exports, require ) {
 		for ( var i = 0, l = words.length; i < l; ++i ) {
 			words[i] = words[i].replace( reNotWordG, "" );
 		}
-		return words.join(" ").toLowerCase();
+		return words.join(" ").trim().toLowerCase();
 	}
 	
 	function tokey( s ) {
@@ -29,8 +29,8 @@ module('dictionary/async', function( exports, require ) {
 	
 	function testChange( s, left, right ) {
 		return !(
-			left && reNotWord.test( s.substr(0, left.to) ) ||
-			right && reNotWord.test( s.slice(-right.to) )
+			left && s.substr(0, left.to).indexOf(" ") !== -1 ||
+			right && s.slice(-right.to).indexOf(" ") !== -1
 		);
 	}
 	
