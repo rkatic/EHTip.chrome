@@ -3,7 +3,7 @@ module('storage/async', function( exports ) {
 var SQL = {
 	CREATE : "CREATE TABLE IF NOT EXISTS dict(key TEXT UNIQUE, value TEXT)",
 	DROP   : "DROP TABLE IF EXISTS dict",
-	REPLACE: "INSERT OR REPLACE INTO dict values(?, ?)",
+	REPLACE: "INSERT OR REPLACE INTO dict VALUES (?, ?)",
 	DELETE : "DELETE FROM dict WHERE key = ?",
 	SELECT : "SELECT value FROM dict WHERE key = ?",
 	COUNT  : "SELECT COUNT(*) AS c FROM dict WHERE key = ?",
@@ -12,6 +12,7 @@ var SQL = {
 	SELECT_KEYS : "SELECT key FROM dict WHERE substr(key, 1, ?) = ?",
 	SELECT_PAIRS: "SELECT key, value FROM dict WHERE substr(key, 1, ?) = ?"
 };
+
 
 function reportError( error ) {
 	console.error( error );
@@ -173,9 +174,9 @@ var DictStorage = exports.DictStorage = Class({
 	},
 	
 	updateWithObject: function( obj, errCb, cb ) {
-		var sql = SQL.REPLACE;
-		
 		this._db.transaction(function( t ) {
+			var sql = SQL.REPLACE;
+			
 			for ( var key in obj ) {
 				t.executeSql( sql, [ key, obj[key] ] );
 			}
