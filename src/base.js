@@ -162,8 +162,10 @@ module("common", function( exports ) {
 	exports.reWordJoiner = /[\s—\-_]+/;
 	exports.reWordJoinerG = /[\s—\-_]+/g;
 	
+	var reClean = /\(.*?\)|\[.*?\]|\{.*?\}/g;
+	
 	exports.cleanTerm = function( term ) {
-		return term.replace(/[\(\[\{].*/g, "").trim();
+		return term.replace( reClean, "" ).replace(/\s+/g, " ").trim();
 	};
 	
 });

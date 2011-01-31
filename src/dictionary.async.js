@@ -119,6 +119,7 @@ module('dictionary/async', function( exports, require ) {
 					if ( value ) {
 						var d = JSON.parse( value ),
 							exact = !leftChange && !rightChange,
+							sub_results = [],
 							k, norm_k;
 						
 						for ( k in d ) {
@@ -135,8 +136,8 @@ module('dictionary/async', function( exports, require ) {
 									continue;
 								}
 							}
-								
-							results.push({
+							
+							sub_results[ simple && !reNotWord.test(k) ? "unshift" : "push" ]({
 								dict: self.name,
 								term: k,
 								definitions: d[ k ],
@@ -144,6 +145,8 @@ module('dictionary/async', function( exports, require ) {
 								exact: exact
 							});
 						}
+						
+						results.push.apply( results, sub_results );
 						
 						if ( stopOnExact && exact ) {
 							return;
