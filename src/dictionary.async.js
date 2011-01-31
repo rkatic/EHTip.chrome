@@ -16,7 +16,7 @@ module('dictionary/async', function( exports, require ) {
 		for ( var i = 0, l = words.length; i < l; ++i ) {
 			words[i] = words[i].replace( reNotWordG, "" );
 		}
-		return words.join(" ").trim().toLowerCase();
+		return words.join(" ").trim().replace(/ {2,}/g, " ").toLowerCase();
 	}
 	
 	function tokey( s ) {
