@@ -171,7 +171,7 @@ module("common", function( exports ) {
 				++deep;
 				
 			} else if ( c === b ) {
-				if ( deep ) --deep
+				if ( deep ) --deep;
 				
 			} else if ( deep === 0 ) {
 				res += c;
