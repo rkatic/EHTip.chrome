@@ -161,11 +161,40 @@ module("common", function( exports ) {
 	
 	exports.reWordJoiner = /[\s—\-_]+/;
 	exports.reWordJoinerG = /[\s—\-_]+/g;
-	
-	var reClean = /\(.*?\)|\[.*?\]|\{.*?\}/g;
+		
+		
+	function removeBounded( str, a, b ) {
+		var res = "", deep = 0, c;
+		
+		for ( var i = 0; c = str[i]; ++i ) {
+			if ( c === a ) {
+				++deep;
+				
+			} else if ( c === b ) {
+				if ( deep ) --deep
+				
+			} else if ( deep === 0 ) {
+				res += c;
+			}
+		}
+		
+		return res;
+	}
 	
 	exports.cleanTerm = function( term ) {
-		return term.replace( reClean, "" ).replace(/\s+/g, " ").trim();
+		if ( term.indexOf('(') !== -1 ) {
+			term = removeBounded( term, '(', ')' )
+		}
+		
+		if ( term.indexOf('[') !== -1 ) {
+			term = removeBounded( term, '[', ']' )
+		}
+		
+		if ( term.indexOf('{') !== -1 ) {
+			term = removeBounded( term, '{', '}' )
+		}
+		
+		return term.trim().replace(/\s+/g, " ");
 	};
 	
 });

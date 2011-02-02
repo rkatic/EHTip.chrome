@@ -55,7 +55,7 @@ var _dicts = [],
 	_builtinDicts = [
 		{
 			name: 'en-hr',
-			revision: 3,
+			revision: 4,
 			morf: 'en',
 			path: './EH/EH-utf8.Txt',
 			sep: '\t',
@@ -64,7 +64,7 @@ var _dicts = [],
 		},
 		{
 			name: 'hr-en',
-			revision: 3,
+			revision: 4,
 			morf: 'hr',
 			path: './EH/EH-utf8.Txt',
 			sep: '\t',
