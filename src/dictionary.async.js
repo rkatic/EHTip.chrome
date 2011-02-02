@@ -78,7 +78,9 @@ module('dictionary/async', function( exports, require ) {
 		
 		// WARNING: not safe if not empty
 		setFromObject: function( obj, errorCallback, callback ) {
-			var k, d, hash = utils.HASH();
+			var k, d, hash = utils.HASH(),
+				stringify = JSON.stringify,
+				pairs = [], i = -1;
 			
 			for ( var term in obj ) {
 				k = tokey( term );
@@ -90,10 +92,10 @@ module('dictionary/async', function( exports, require ) {
 			}
 			
 			for ( k in hash ) {
-				hash[k] = JSON.stringify( hash[k] );
+				pairs[ ++i ] = [ k, stringify(hash[k]) ];
 			}
 			
-			this._dict.updateWithObject( hash, errorCallback, callback );
+			this._dict.updateWithPairs( pairs, errorCallback, callback );
 		},
 		
 		empty: function( errorCallback, callback ) {

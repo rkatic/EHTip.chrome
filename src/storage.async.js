@@ -181,6 +181,16 @@ var DictStorage = exports.DictStorage = Class({
 				t.executeSql( sql, [ key, obj[key] ] );
 			}
 		}, errCb, cb);
+	},
+	
+	updateWithPairs: function( pairs, errCb, cb ) {
+		this._db.transaction(function( t ) {
+			var sql = SQL.REPLACE;
+			
+			for ( var i = 0, l = pairs.length; i < l; ++i ) {
+				t.executeSql( sql, pairs[i] );
+			}
+		}, errCb, cb);
 	}
 });
 
