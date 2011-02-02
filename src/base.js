@@ -190,15 +190,15 @@ module("common", function( exports ) {
 	
 	exports.cleanTerm = function( term ) {
 		if ( term.indexOf('(') !== -1 ) {
-			term = removeBounded( term, '(', ')' )
+			term = removeBounded( term, '(', ')' );
 		}
 		
 		if ( term.indexOf('[') !== -1 ) {
-			term = removeBounded( term, '[', ']' )
+			term = removeBounded( term, '[', ']' );
 		}
 		
 		if ( term.indexOf('{') !== -1 ) {
-			term = removeBounded( term, '{', '}' )
+			term = removeBounded( term, '{', '}' );
 		}
 		
 		return term.trim().replace(/\s+/g, " ");
