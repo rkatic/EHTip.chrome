@@ -164,9 +164,16 @@ module("common", function( exports ) {
 		
 		
 	function removeBounded( str, a, b ) {
-		var res = "", deep = 0, c;
+		var i = str.indexOf( a );
 		
-		for ( var i = 0; c = str[i]; ++i ) {
+		if ( i === -1 ) {
+			return str;
+		}
+		
+		var deep = 0, c,
+			res = str.substr(0, i);
+		
+		for ( ; c = str[i]; ++i ) {
 			if ( c === a ) {
 				++deep;
 				
