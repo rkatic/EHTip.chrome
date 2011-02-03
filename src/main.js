@@ -3,10 +3,8 @@ var bg = module("main", function( bg, require ) {
 var utils = require("utils"),
 	io = require("io"),
 	options = require("options"),
-	storage_async = require("storage/async"),
 	dictionary_async = require("dictionary/async"),
 	morfology = require("morfology"),
-	Emitter = require("events").Emitter,
 	reLocalize = /__MSG_(.+?)__/g;
 
 bg.options = options;
