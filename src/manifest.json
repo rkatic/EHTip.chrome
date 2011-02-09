@@ -1,6 +1,7 @@
 {
 	"name": "EHTip (bender)",
 	"version": "0.3.2",
+	"minimum_chrome_version": "10",
 	"description": "__MSG_description__",
 	"update_url": "http://bender.fesb.hr/~robert/ehtip/crx/update.xml",
 	"permissions": [
