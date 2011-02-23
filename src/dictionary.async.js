@@ -1,7 +1,7 @@
 module('dictionary/async', function( exports, require ) {
 	
 	var utils = require("utils"),
-		storage = require("storage/async"),
+		AsyncStorage = require("storage/async").AsyncStorage,
 		
 		common = require("common"),
 		reNotWord = common.reNotWord,
@@ -42,7 +42,7 @@ module('dictionary/async', function( exports, require ) {
 		
 		constructor: function( name, morf ) {
 			this.name = name;
-			this._dict = storage.DictStorage.open( name, DB_SIZE );
+			this._dict = AsyncStorage.open( name, DB_SIZE );
 			this._morfology = morf;
 		},
 		

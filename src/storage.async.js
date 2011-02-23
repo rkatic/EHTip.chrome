@@ -35,7 +35,7 @@ function dropTable( t ) {
 	t.executeSql( SQL.DROP );
 }
 
-var DictStorage = exports.DictStorage = Class({
+var AsyncStorage = exports.AsyncStorage = Class({
 	
 	open: function( name, estimatedSize ) {
 		this._db = openDatabase(
@@ -194,15 +194,15 @@ var DictStorage = exports.DictStorage = Class({
 	}
 });
 
-DictStorage.open = function() {
-	var ds = new DictStorage();
+AsyncStorage.open = function() {
+	var ds = new AsyncStorage();
 	ds.open.apply( ds, arguments );
 	return ds;
 };
 
 
-DictStorage.erase = function( name ) {
-	DictStorage.open( name, 0 ).erase();
+AsyncStorage.erase = function( name ) {
+	AsyncStorage.open( name, 0 ).erase();
 };
 
 
