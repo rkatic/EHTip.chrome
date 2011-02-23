@@ -123,7 +123,7 @@ module('dictionary/async', function( exports, require ) {
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
 			
-			function handle( original_term, norm_term, simple, morf, leftChange, rightChange, done ) {			
+			function handle( original_term, norm_term, results, is_a_word, morf, leftChange, rightChange, done ) {			
 				var key_term = normToKey( norm_term );
 				done = done || utils.HASH();
 				
@@ -140,7 +140,7 @@ module('dictionary/async', function( exports, require ) {
 							}
 							done[ k ] = true;
 							
-							if ( !simple ) {
+							if ( !is_a_word ) {
 								norm_k = norm( k );
 								
 								if ( norm_k !== norm_term && norm_k !== key_term ||
@@ -149,7 +149,7 @@ module('dictionary/async', function( exports, require ) {
 								}
 							}
 							
-							sub_results[ simple && !reNotWord.test(k) ? "unshift" : "push" ]({
+							sub_results[ is_a_word && !reNotWord.test(k) ? "unshift" : "push" ]({
 								dict: self.name,
 								term: k,
 								definitions: d[ k ],
@@ -167,8 +167,8 @@ module('dictionary/async', function( exports, require ) {
 					
 					if ( morf ) {
 						morf.generate(norm_term, function( term, leftChange, rightChange ) {
-							if ( simple || testChange(norm_term, leftChange, rightChange) ) {
-								handle( original_term, term, simple, null, leftChange, rightChange, done );
+							if ( is_a_word || testChange(norm_term, leftChange, rightChange) ) {
+								handle( original_term, term, results, is_a_word, null, leftChange, rightChange, done );
 							}
 						});
 					}
@@ -178,14 +178,18 @@ module('dictionary/async', function( exports, require ) {
 			this._storage.readTransaction(
 				function( tr ) {
 					t = tr;
-					terms.forEach(function( term ) {
-						var norm_term = norm( term );
-						handle( term, norm_term, norm_term.indexOf(" ") === -1, self._morf );
-					});
+					
+					for ( var i = 0, l = terms.length; i < l; ++i ) {
+						var term = terms[i],
+							norm_term = norm( term ),
+							is_a_word = norm_term.indexOf(" ") === -1;
+						
+						handle( term, norm_term, ( results[i] = [] ), is_a_word, self._morf );
+					}
 				},
 				errorCallback,
 				function() {
-					callback( results );
+					callback( results.concat.apply( [], results ) );
 				}
 			);
 		}
