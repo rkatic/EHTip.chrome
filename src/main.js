@@ -103,7 +103,7 @@ function init() {
 	b = mapArrayWithProp( utils.loadObject('dicts') || [], 'name' );
 	
 	for ( name in a ) {
-		if ( !(name in b) || a[name].revision > (b[name].revision || 0)  ) {
+		if ( !(name in b) || a[name].revision != (b[name].revision || 0)  ) {
 			b[ name ] = a[ name ];
 		}
 	}
