@@ -364,7 +364,7 @@ function parse( data, sep, keyIndex, valueIndex ) {
 //};
 
 
-function lookup( o, callback ) {
+function lookup_( o, callback ) {
 	var	dicts = o.dicts || _dicts,
 		terms = typeof o.term === "string" ? [o.term] : o.term,
 		results = [];
@@ -417,6 +417,67 @@ function lookup( o, callback ) {
 	collect();
 }
 
+function lookup( o, callback ) {
+	var	dicts = o.dicts || _dicts.concat(),
+		terms = typeof o.term === "string" ? [ o.term ] : o.term,
+		map = utils.HASH(), n2go = dicts.length + 1, info;
+	
+	if ( typeof dicts[0] === "string" ) {
+		dicts = dicts.map( _findByName_, _dicts );
+	}
+	
+	function error( error ) {
+		reportError( error );
+		done();
+	}
+	
+	function done( res ) {
+		if ( res ) {
+			res = exactsFirst( res )
+			
+			if ( o.limit && res.length > o.limit ) {
+				res.length = o.limit;
+			}
+			
+			if ( res.length ) {
+				map[ res[0].dict ] = res;
+			}
+		}
+		
+		if ( --n2go === 0 ) {
+			var results = [];
+			
+			for ( var i = 0, l = dicts.length; i < l; ++i ) {
+				res = map[ dicts[i].name ];
+				res && results.push.apply( results, res );
+			}
+			
+			if ( o.localize ) {
+				for ( var i = 0, l = results.length; i < l; ++i ) {
+					results[i].dict_localized = localizedDictName( results[i].dict );
+				}
+			}
+			
+			callback( results );
+		}
+	}
+	
+	for ( var i = 0, l = dicts.length; i < l; ++i ) {
+		info = _findByName_.call( _dictInfo, dicts[i].name );
+		
+		if ( info.ready ) {
+			dicts[i].lookup( terms, o.stopOnExact, error, done );
+			
+		} else {
+			done([{
+				message: chrome.i18n.getMessage("dict_not_ready_try_later"),
+				dict: dicts[i].name
+			}]);
+		}
+	}
+	
+	done();
+}
 
 
 function exactsFirst( res ) {
