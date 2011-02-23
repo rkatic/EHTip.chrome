@@ -273,9 +273,7 @@ function reloadDicts( dicts, callback ) {
 			return;
 		}
 		
-		dict.empty(next, function() {
-			dict.setFromObject( obj, next, next );
-		});
+		dict.reset( obj, next, next );
 	}
 	
 	next();

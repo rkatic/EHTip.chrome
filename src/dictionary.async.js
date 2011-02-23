@@ -34,6 +34,23 @@ module('dictionary/async', function( exports, require ) {
 		);
 	}
 	
+	function buildIndexedHash( obj ) {
+		var hash = utils.HASH(),
+			_key = tokey,
+			k, d;
+		
+		for ( var term in obj ) {
+			k = _key( term );
+			d = hash[ k ];
+			if ( !d ) {
+				hash[ k ] = d = {__proto__: null};
+			}
+			d[ term ] = obj[ term ];
+		}
+		
+		return hash;
+	}
+	
 	
 	var undefined;
 	const DB_SIZE = 5 * 1024 * 1024;
@@ -42,28 +59,14 @@ module('dictionary/async', function( exports, require ) {
 		
 		constructor: function( name, morf ) {
 			this.name = name;
-			this._dict = AsyncStorage.open( name, DB_SIZE );
-			this._morfology = morf;
-		},
-		
-		get: function( term, errorCallback, callback ) {
-			this._dict.getValue(tokey(term), errorCallback, function( value ) {
-				if ( value ) {
-					var d = JSON.parse( value );
-					
-					if ( d && _hasOwn_.call(d, term) ) {
-						value = d[ term ];
-					}
-				}
-				
-				callback( value || undefined );
-			});
+			this._storage = AsyncStorage.open( name, DB_SIZE );
+			this._morf = morf;
 		},
 		
 		set: function( term, def, errorCallback, callback ) {
 			var key = tokey( term );
 			
-			this._dict.transaction(
+			this._storage.transaction(
 				function( t ) {
 					t.getValue(key, function( value ) {
 						var d = value ? JSON.parse( value ) : {};
@@ -76,34 +79,41 @@ module('dictionary/async', function( exports, require ) {
 			);
 		},
 		
-		// WARNING: not safe if not empty
-		setFromObject: function( obj, errorCallback, callback ) {
-			var k, d, hash = utils.HASH(),
-				stringify = JSON.stringify,
-				pairs = [], i = -1;
+		reset: function( obj, errorCallback, callback ) {
+			var pairs, hash, k, i, dump;
 			
-			for ( var term in obj ) {
-				k = tokey( term );
-				d = hash[ k ];
-				if ( !d ) {
-					hash[ k ] = d = {};
+			if ( obj ) {
+				hash = buildIndexedHash( obj );
+				pairs = [],
+				i = -1;
+				dump = JSON.stringify;
+				
+				for ( k in hash ) {
+					pairs[ ++i ] = [ k, dump( hash[k] ) ];
 				}
-				d[ term ] = obj[ term ];
 			}
 			
-			for ( k in hash ) {
-				pairs[ ++i ] = [ k, stringify(hash[k]) ];
-			}
-			
-			this._dict.updateWithPairs( pairs, errorCallback, callback );
+			this._storage.transaction(
+				function( t ) {
+					t.reset();
+					
+					if ( pairs ) {
+						t.updateWithPairs( pairs );
+					}
+				},
+				errorCallback,
+				callback
+			);
 		},
 		
-		empty: function( errorCallback, callback ) {
-			this._dict.reset( errorCallback, callback );
-		},
-		
-		free: function( callback ) {
-			this._dict.erase( null, callback );
+		free: function( errorCallback, callback ) {
+			this._storage.transaction(
+				function( t ) {
+					t.drop();
+				},
+				errorCallback,
+				callback
+			);
 		},
 		
 		lookup: function( terms, stopOnExact, errorCallback, callback ) {
@@ -165,12 +175,12 @@ module('dictionary/async', function( exports, require ) {
 				});
 			}
 			
-			this._dict.readTransaction(
+			this._storage.readTransaction(
 				function( tr ) {
 					t = tr;
 					terms.forEach(function( term ) {
 						var norm_term = norm( term );
-						handle( term, norm_term, norm_term.indexOf(" ") === -1, self._morfology );
+						handle( term, norm_term, norm_term.indexOf(" ") === -1, self._morf );
 					});
 				},
 				errorCallback,
