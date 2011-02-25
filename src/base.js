@@ -83,7 +83,12 @@ module("utils", function( utils ) {
 	
 	var OP = Object.prototype,
 		_toStr_ = OP.toString,
-		protoOf = Object.getPrototypeOf;
+		protoOf = Object.getPrototypeOf,
+		
+		_a = [],
+		_slice_ = _a.slice,
+		_concat_ = _a.concat,
+		_push_ = _a.push;
 	
 	utils.HASH = function() {
 		return {__proto__: null};
@@ -91,6 +96,27 @@ module("utils", function( utils ) {
 	
 	utils.isArray = Array.isArray || function(o) {
 		return !!o && _toStr_.call(o) === "[object Array]";
+	};
+	
+	utils.toArray = function( obj ) {
+		return _slice_.call( obj, 0 );
+	},
+	
+	utils.merge = function( a0, a1 ) {
+		return _push_.apply( a0, a1 );
+	};
+	
+	utils.flat = function( a ) {
+		return _concat_.apply( _a, a );
+	};
+	
+	utils.flatR = function( a ) {
+		do {
+			a = _concat_.apply( _a, a );
+			
+		} while ( a.some( utils.isArray ) );
+		
+		return a;
 	};
 	
 	utils.isFunction = function(o) {

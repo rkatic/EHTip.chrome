@@ -184,7 +184,7 @@ function getAllTabs( callback ) {
 		var tabs = [];
 		
 		for ( var i = 0, l = windows.length; i < l; ++i ) {
-			tabs.push.apply( tabs, windows[i].tabs );
+			utils.merge( tabs, windows[i].tabs );
 		}
 		
 		callback( tabs );
@@ -236,7 +236,7 @@ chrome.extension.onRequest.addListener(function( req, sender, send ) {
 function reloadDicts( dicts, callback ) {
 	var dict, info;
 	
-	dicts = dicts.concat();
+	dicts = utils.toArray( dicts );
 	
 	function next( error ) {
 		if ( error ) {
@@ -387,7 +387,7 @@ function lookup_( o, callback ) {
 			}
 			
 			if ( res.length ) {
-				results.push.apply( results, res );
+				utils.merge( results, res );
 			}
 		}
 		
@@ -449,7 +449,7 @@ function lookup( o, callback ) {
 			
 			for ( var i = 0, l = dicts.length; i < l; ++i ) {
 				res = map[ dicts[i].name ];
-				res && results.push.apply( results, res );
+				res && utils.merge( results, res );
 			}
 			
 			if ( o.localize ) {

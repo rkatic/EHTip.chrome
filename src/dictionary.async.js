@@ -121,7 +121,7 @@ module('dictionary/async', function( exports, require ) {
 				results = [],
 				t;
 			
-			terms = ( typeof terms === "string" ) ? [ terms ] : terms.concat();
+			terms = ( typeof terms === "string" ) ? [ terms ] : terms;
 			
 			function handle( original_term, norm_term, results, is_a_word, morf, leftChange, rightChange, done ) {			
 				var key_term = normToKey( norm_term );
@@ -158,7 +158,7 @@ module('dictionary/async', function( exports, require ) {
 							});
 						}
 						
-						results.push.apply( results, sub_results );
+						utils.merge( results, sub_results );
 						
 						if ( stopOnExact && exact ) {
 							return;
@@ -189,7 +189,7 @@ module('dictionary/async', function( exports, require ) {
 				},
 				errorCallback,
 				function() {
-					callback( results.concat.apply( [], results ) );
+					callback( utils.flat( results ) );
 				}
 			);
 		}
