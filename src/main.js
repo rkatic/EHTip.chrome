@@ -181,13 +181,7 @@ function reportError( error ) {
 
 function getAllTabs( callback ) {
 	chrome.windows.getAll({populate: true}, function( windows ) {
-		var tabs = [];
-		
-		for ( var i = 0, l = windows.length; i < l; ++i ) {
-			utils.merge( tabs, windows[i].tabs );
-		}
-		
-		callback( tabs );
+		callback( utils.flat( utils.pluck( windows, "tabs" ) ) );
 	});
 }
 
