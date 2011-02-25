@@ -364,59 +364,6 @@ function parse( data, sep, keyIndex, valueIndex ) {
 //};
 
 
-function lookup_( o, callback ) {
-	var	dicts = o.dicts || _dicts,
-		terms = typeof o.term === "string" ? [o.term] : o.term,
-		results = [];
-	
-	dicts = ( typeof dicts[0] === "string" ) ?
-		dicts.map( _findByName_, _dicts ) :
-		dicts.concat();
-	
-	function error( error ) {
-		reportError( error );
-		collect();
-	}
-	
-	function collect( res ) {
-		if ( res ) {
-			res = exactsFirst( res );
-			
-			if ( o.limit && res.length > o.limit ) {
-				res.length = o.limit;
-			}
-			
-			if ( res.length ) {
-				utils.merge( results, res );
-			}
-		}
-		
-		if ( dicts.length ) {
-			var dict = dicts.shift(),
-				info = _findByName_.call( _dictInfo, dict.name );
-			
-			if ( info.ready ) {
-				dict.lookup( terms, o.stopOnExact, error, collect );
-			} else {
-				collect([{
-					message: chrome.i18n.getMessage("dict_not_ready_try_later"),
-					dict: dict.name
-				}]);
-			}
-			
-		} else {
-			if ( o.localize ) {
-				results.forEach(function( res ) {
-					res.dict_localized = localizedDictName( res.dict );
-				});
-			}
-			callback( results );
-		}
-	}
-	
-	collect();
-}
-
 function lookup( o, callback ) {
 	var	dicts = o.dicts || _dicts.concat(),
 		terms = typeof o.term === "string" ? [ o.term ] : o.term,
