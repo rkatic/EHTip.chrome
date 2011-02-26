@@ -566,7 +566,7 @@ function getRangeAtXY( parent, x, y ) {
 	return null;
 }
 
-var shrinkAnimation = (function(){
+var shrinkAnimation = 0 && (function(){
 	var	a = [], i = -1, interval_id,
 		outliner = new shapes.BoxOutliner( document, "2px dotted orange" );
 	
