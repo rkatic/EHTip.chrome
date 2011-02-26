@@ -281,21 +281,23 @@ exports.BoxOutliner = Class( Shape, {
 		this.$w.style.overflow = "visible";
 		
 		this.$top = t.cloneNode(false);
-		this.$top.style.borderTop = border;
-		
 		this.$bottom = t.cloneNode(false);
-		this.$bottom.style.borderBottom = border;
-		
 		this.$left = t.cloneNode(false);
-		this.$left.style.borderLeft = border;
-		
 		this.$right = t.cloneNode(false);
-		this.$right.style.borderRight = border;
+		
+		this.setBorderStyle( border );
 		
 		this.$w.appendChild( this.$top );
 		this.$w.appendChild( this.$bottom );
 		this.$w.appendChild( this.$left );
 		this.$w.appendChild( this.$right );
+	},
+	
+	setBorderStyle: function( style ) {
+		this.$top.style.borderTop = style;
+		this.$bottom.style.borderBottom = style;
+		this.$left.style.borderLeft = style;
+		this.$right.style.borderRight = style;
 	},
 	
 	_show: function( r ) {

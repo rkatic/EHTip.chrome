@@ -566,42 +566,61 @@ function getRangeAtXY( parent, x, y ) {
 	return null;
 }
 
-var shrinkAnimation = null && (function(){
-	var rects = [], started,
-		timeoutId,
+var shrinkAnimation = (function(){
+	var	a = [], i = -1, interval_id,
 		outliner = new shapes.BoxOutliner( document, "2px dotted orange" );
 	
-	function play() {
-		started = true;
-		var rect = rects.shift();
-		if ( rect ) {
-			outliner.show( rect );
-			timeoutId = window.setTimeout( play, 300 );
-		} else {
-			stop();
+	function step(x) {
+		if ( x ) {
+			x[1] && outliner.setBorderStyle( x[1] );
+			outliner.show( x[0] || x );
 		}
+		return x && x[2];
 	}
 	
-	function stop() {
-		if ( !started ) {
+	a.play = function() {
+		if ( interval_id || !a[i+1] ) {
 			return;
 		}
-		if ( timeoutId ) {
-			window.clearTimeout( timeoutId );
-			timeoutId = null;
-		}
-		rects.length = 0;
-		outliner.hide();
+		interval_id = window.setInterval(function() {
+			if ( step( a[++i] ) || !a[i+1] ) {
+				a.stop(1);
+			}
+		}, 200);
 	}
 	
-	return {
-		push: function( rect ) {
-			rects.push( rect );
-			started = false;
-		},
-		play: play,
-		stop: stop
+	a.stop = function( pause ) {
+		if ( interval_id ) {
+			window.clearInterval( interval_id );
+			interval_id = null;
+		}
+		if ( !pause ) {
+			a.length = 0;
+			i = -1;
+			outliner.hide();
+		}
 	};
+	
+	window.addEventListener('keydown', function(e) {
+		var c = e.keyCode;
+		
+		if ( c === 17 ) {
+			a.play();
+			return;
+		}
+		
+		interval_id && a.stop(1);
+		
+		if ( c === 39 && a[i+1] ) {
+			step( a[++i] );
+		}
+		
+		if ( c === 37 && a[i-1] ) {
+			step( a[--i] );
+		}
+	}, false);
+	
+	return a;
 })();
 
 // D&C
@@ -621,10 +640,12 @@ function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
 	}
 	
 	var r = range.getBoundingClientRect();
-	shrinkAnimation && shrinkAnimation.push( r );
 	if ( r.left > x || r.right < x || r.top > y || r.bottom < y ) {
+		shrinkAnimation && shrinkAnimation.push([r, "3px dotted red"]);
 		return false;
 	}
+	
+	shrinkAnimation && shrinkAnimation.push([r, "2px dotted green"]);
 	
 	var d = b - a;
 	if ( d === 1 ) {

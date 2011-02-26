@@ -1,7 +1,10 @@
 module('morfology', function( exports, require ) {
 	
 	var utils = require("utils"),
-		io = require("io");	
+		io = require("io"),
+		
+		extend = utils.extend;
+
 
 	exports.Transformations = Class({
 		
@@ -32,27 +35,33 @@ module('morfology', function( exports, require ) {
 			});
 		},
 		
-		generate: function( str, callback ) {			
-			var sufData = [], preData = [], arr, rm, t, sd, pd, undef;
+		generateAll: function( str ) {
+			var rv = [];
+			this.generate( rv.push, rv );
+			return rv;
+		},
+		
+		generate: function( str, callback, context ) {			
+			var sfxResults = [], pfxResults = [], arr, rm, res, t, undef;
 			
 			arr = this._sfx;
 			for ( var i = 0, l = arr.length; i < l; ++i ) {
 				if ( arr[i].re.test( str ) ) {
 					rm = RegExp.$1 ? RegExp.$1.length : 0;
+					add = arr[i].add || "";
 					
-					sd = {
-						to: RegExp['$&'].length,
-						rm: rm,
-						add: arr[i].add || ""
+					res = {
+						sfx_tot: RegExp['$&'].length,
+						sfx_rm: rm,
+						sfx_add: add,
+						value: ( rm ? str.slice( 0, -rm ) : str ) + add
 					};
 					
-					t = ( rm ? str.slice( 0, -rm ) : str ) + sd.add;
-					
-					if ( callback( t, null, sd ) === false ) {
+					if ( callback.call( context, res ) === false ) {
 						return;
 					}
 					
-					sufData.push( sd );
+					sfxResults.push( res );
 				}
 			}
 			
@@ -60,37 +69,38 @@ module('morfology', function( exports, require ) {
 			for ( var i = 0, l = arr.length; i < l; ++i ) {
 				if ( arr[i].re.test( str ) ) {
 					rm = RegExp.$1 ? RegExp.$1.length : 0;
+					add = arr[i].add || "";
 					
-					pd = {
-						to: RegExp['$&'].length,
-						rm: rm,
-						add: arr[i].add || ""
+					res = {
+						pfx_tot: RegExp['$&'].length,
+						pfx_rm: rm,
+						pfx_add: add,
+						value: add + ( rm ? str.substr( rm ) : str )
 					};
 					
-					t = pd.add + ( rm ? str.substr( rm ) : str );
-					
-					if ( callback( t, pd, null ) === false ) {
+					if ( callback.call( context, res ) === false ) {
 						return;
 					}
 					
-					preData.push( pd );
+					pfxResults.push( res );
 				}
 			}
 			
-			if ( sufData.length === 0 || preData.length === 0 ) {
+			if ( sfxResults.length === 0 || pfxResults.length === 0 ) {
 				return;
 			}
 
-			for ( var i = 0, ii = sufData.length; i < ii; ++i ) {
-				for ( var j = 0, jj = preData.length; j < jj; ++j ) {
-					sd = sufData[i],
-					pd = preData[j];
+			for ( var i = 0, l = sfxResults.length; i < l; ++i ) {
+				for ( var j = 0, m = pfxResults.length; j < m; ++j ) {
 					
-					t = str.slice( pd.rm, -sd.rm || undef );
+					res = extend( extend( {}, sfxResults[i] ), pfxResults[j] );
+					
+					t = str.slice( res.pfx_rm, -res.sfx_rm || undef );
 					
 					if ( t ) {
-						t = pd.add + t + sd.add;
-						if ( callback( t, pd, sd ) === false ) {
+						res.value = res.pfx_add + t + res.sfx_add;
+						
+						if ( callback.call( context, res ) === false ) {
 							return;
 						}
 					}

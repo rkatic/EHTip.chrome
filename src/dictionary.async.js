@@ -27,10 +27,10 @@ module('dictionary/async', function( exports, require ) {
 		return s.replace(/ /g, "");
 	}
 	
-	function testChange( s, left, right ) {
+	function testChange( s, t ) {
 		return !(
-			left && s.substr(0, left.to).indexOf(" ") !== -1 ||
-			right && s.slice(-right.to).indexOf(" ") !== -1
+			t.pfx_tot && s.substr(0, t.pfx_tot).indexOf(" ") !== -1 ||
+			t.sfx_tot && s.slice(-t.sfx_tot).indexOf(" ") !== -1
 		);
 	}
 	
@@ -123,14 +123,13 @@ module('dictionary/async', function( exports, require ) {
 			
 			terms = ( typeof terms === "string" ) ? [ terms ] : terms;
 			
-			function handle( original_term, norm_term, results, is_a_word, morf, leftChange, rightChange, done ) {			
+			function handle( original_term, norm_term, results, is_a_word, morf, morf_res, done ) {			
 				var key_term = normToKey( norm_term );
 				done = done || utils.HASH();
 				
 				t.getValue(key_term, function( value ) {
 					if ( value ) {
 						var d = JSON.parse( value ),
-							exact = !leftChange && !rightChange,
 							sub_results = [],
 							k, norm_k;
 						
@@ -144,7 +143,7 @@ module('dictionary/async', function( exports, require ) {
 								norm_k = norm( k );
 								
 								if ( norm_k !== norm_term && norm_k !== key_term ||
-									!exact && !testChange(norm_k, leftChange, rightChange) ) {
+									morf_res && !testChange(norm_k, morf_res) ) {
 									continue;
 								}
 							}
@@ -154,21 +153,21 @@ module('dictionary/async', function( exports, require ) {
 								term: k,
 								definitions: d[ k ],
 								original_term: original_term,
-								exact: exact
+								exact: !morf_res
 							});
 						}
 						
 						utils.merge( results, sub_results );
 						
-						if ( stopOnExact && exact ) {
+						if ( stopOnExact && !morf_res ) {
 							return;
 						}
 					}
 					
 					if ( morf ) {
-						morf.generate(norm_term, function( term, leftChange, rightChange ) {
-							if ( is_a_word || testChange(norm_term, leftChange, rightChange) ) {
-								handle( original_term, term, results, is_a_word, null, leftChange, rightChange, done );
+						morf.generate(norm_term, function( morf_res ) {
+							if ( is_a_word || testChange(norm_term, morf_res) ) {
+								handle( original_term, morf_res.value, results, is_a_word, null, morf_res, done );
 							}
 						});
 					}
