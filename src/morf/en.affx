@@ -32,7 +32,7 @@ SFX [^ey](ed)
 SFX [aeiou]y(ed)
 
 SFX e(st)
-SFX [^aeiou](iest) y
+SFX [^aeiou](iest?) y
 SFX [aeiou]y(est)
 SFX [^ey](est)
 
