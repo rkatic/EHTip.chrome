@@ -189,7 +189,7 @@ var Transaction = Class( ReadTransaction, {
 	
 	updateWithPairs: function( pairs, cb, errCb ) {
 		var t = this._tr, sql = SQL.REPLACE,
-			l = pairs.length, _cb;
+			l = pairs.length, c, _cb;
 			
 		errCb = errCb && errorProxy( errCb );
 		
