@@ -7,9 +7,7 @@ module('dictionary/async', function( exports, require ) {
 		reNotWord = common.reNotWord,
 		reNotWordG = common.reNotWordG,
 		reWordJoinerG = common.reWordJoinerG,
-		clean = common.cleanTerm,
-		
-		_hasOwn_ = Object.prototype.hasOwnProperty;
+		clean = common.cleanTerm;
 		
 	function norm( s ) {
 		var words = clean( s ).split( reWordJoinerG );
