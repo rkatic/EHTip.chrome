@@ -556,8 +556,7 @@ function getRangeAtXY( parent, x, y ) {
 			continue;
 		}
 		
-		range.selectNodeContents( childs[i] );
-		if ( shrinkRangeToXY( range, x, y ) ) {
+		if ( shrinkRangeToXY( range, x, y, childs[i] ) ) {
 			return range;
 		}
 	}
@@ -624,19 +623,19 @@ var shrinkAnimation = 0 && (function(){
 })();
 
 // D&C
-function shrinkRangeToXY( range, x, y, /* internals */ node, a, b ) {
-	if ( node ) {
-		range.setStart( node, a );
-		range.setEnd( node, b );
-		
-	} else {
-		node = range.startContainer;
+function shrinkRangeToXY( range, x, y, node, /* internals */ a, b ) {
+	if ( a === undefined ) {
+		range.selectNodeContents( node );
 		a = range.startOffset;
 		b = range.endOffset;
 		
-		if ( a === b ) {
-			return false;
-		}
+	} else {
+		range.setStart( node, a );
+		range.setEnd( node, b );
+	}
+	
+	if ( a === b ) {
+		return false;
 	}
 	
 	var r = range.getBoundingClientRect();
