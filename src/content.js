@@ -1,4 +1,4 @@
-module("content", function( exports, require ) {
+var cs = module("content", function( exports, require ) {
 	
 var shapes = require("shapes"),
 	common = require("common"),
@@ -23,6 +23,7 @@ var	window = this,
 	_hold,
 	_explicit,
 	_ignoreNextMouseUp,
+	_stayTimer,
 	_event = {
 		clientX: null,
 		clientY: null,
@@ -200,11 +201,6 @@ function abort() {
 		return;
 	}
 	
-	//if ( _stayTimeoutId ) {
-	//	window.clearTimeout( _stayTimeoutId );
-	//	_stayTimeoutId = null;
-	//}
-	
 	_rect = null;
 	_hold = false;
 	_explicit = undefined;
@@ -231,7 +227,7 @@ function ABORT() {
 		_bevent.target = null;
 	}
 	abort();
-	mouseStay.abort();
+	_stayTimer.clear();
 }
 
 function applyListiners( target, add, map ) {
@@ -269,15 +265,14 @@ var hoverListiners = {
 	if ( explicit || !_hold && _stayMode > 1 ) {
 		recObject( _event, event );
 		_explicit = explicit;
-		mouseStay.delay = _stayDelays[ explicit ? 0 : 1 ];
-		mouseStay();
+		_stayTimer.set( _stayDelays[ explicit ? 0 : 1 ], onMouseStay );
 	} else {
-		mouseStay.abort();
+		_stayTimer.clear();
 	}
 }
 };
 
-var mouseStay = debounce(function() {
+var onMouseStay = function() {
 	if ( _event.target && !isEditable(_event.target) ) {
 		var range = getRangeAtXY( _event.target, _event.clientX, _event.clientY );
 		if ( !range ) return;
@@ -355,7 +350,7 @@ var mouseStay = debounce(function() {
 			lookup( term );
 		}
 	}
-});
+};
 
 
 var selectListiners = {
@@ -565,63 +560,6 @@ function getRangeAtXY( parent, x, y ) {
 	return null;
 }
 
-var shrinkAnimation = 0 && (function(){
-	var	a = [], i = -1, interval_id,
-		outliner = new shapes.BoxOutliner( document, "2px dotted orange" );
-	
-	function step(x) {
-		if ( x ) {
-			x[1] && outliner.setBorderStyle( x[1] );
-			outliner.show( x[0] || x );
-		}
-		return x && x[2];
-	}
-	
-	a.play = function() {
-		if ( interval_id || !a[i+1] ) {
-			return;
-		}
-		interval_id = window.setInterval(function() {
-			if ( step( a[++i] ) || !a[i+1] ) {
-				a.stop(1);
-			}
-		}, 200);
-	}
-	
-	a.stop = function( pause ) {
-		if ( interval_id ) {
-			window.clearInterval( interval_id );
-			interval_id = null;
-		}
-		if ( !pause ) {
-			a.length = 0;
-			i = -1;
-			outliner.hide();
-		}
-	};
-	
-	window.addEventListener('keydown', function(e) {
-		var c = e.keyCode;
-		
-		if ( c === 17 ) {
-			a.play();
-			return;
-		}
-		
-		interval_id && a.stop(1);
-		
-		if ( c === 39 && a[i+1] ) {
-			step( a[++i] );
-		}
-		
-		if ( c === 37 && a[i-1] ) {
-			step( a[--i] );
-		}
-	}, false);
-	
-	return a;
-})();
-
 // D&C
 function shrinkRangeToXY( range, x, y, node, /* internals */ a, b ) {
 	if ( a === undefined ) {
@@ -640,11 +578,11 @@ function shrinkRangeToXY( range, x, y, node, /* internals */ a, b ) {
 	
 	var r = range.getBoundingClientRect();
 	if ( r.left > x || r.right < x || r.top > y || r.bottom < y ) {
-		shrinkAnimation && shrinkAnimation.push([r, "3px dotted red"]);
+		shrinkAnimation && shrinkAnimation.push([r, false]);
 		return false;
 	}
 	
-	shrinkAnimation && shrinkAnimation.push([r, "2px dotted green"]);
+	shrinkAnimation && shrinkAnimation.push([r, true]);
 	
 	var d = b - a;
 	if ( d === 1 ) {
@@ -780,47 +718,141 @@ function trisCombinations( a, b, c ) {
 }
 
 // https://gist.github.com/789582
-function debounce( callback, delay ) {
-	var timer_id, end_time, that, args, undef,
-		now = Date.now || function(){ return +new Date(); };
+var Timer = (function( G ) {
 	
-	function onTimeout() {
-		var delta = end_time - now();
+	return function Timer( g ) {
+		g = g || G;
 		
-		if ( delta > 0 ) {
-			timer_id = setTimeout( onTimeout, delta );
+		var noargs = [],
+			Date = g.Date,
+			now = Date.now || function(){ return +new Date(); },
+			timer_id,
+			end_time,
+			callback,
+			context,
+			args;
 		
-		} else {
-			var t = that, a = args;
-			timer_id = that = args = undef;
-			proxy.callback.apply( t, a );
+		function onTimeout() {
+			var dt = end_time - now();
+			
+			if ( dt > 0 ) {
+				timer_id = g.setTimeout( onTimeout, dt );
+				
+			} else {
+				var _callback = callback,
+					_context = context,
+					_args = args;
+					
+				timer_id = callback = context = args = 0;
+				_callback.apply( _context, _args || noargs );
+			}
 		}
+		
+		return {
+			set: function( delay, _callback, _context, _args ) {
+				var t = end_time;
+				end_time = now() + delay;
+				
+				callback = _callback;
+				context = _context;
+				args = _args;
+				
+				if ( !timer_id || end_time < t ) {
+					timer_id && g.clearTimeout( timer_id );
+					timer_id = g.setTimeout( onTimeout, delay );
+				}
+				
+				return this;
+			},
+			
+			clear: function() {
+				if ( timer_id ) {
+					g.clearTimeout( timer_id );
+					timer_id = callback = context = args = 0;
+				}
+				return this;
+			}
+		};
+	};
+
+})( this );
+
+_stayTimer = Timer( window );
+
+
+var shrinkAnimation = 0 && (function(){
+	var	a = [], i = -1, interval_id,
+		outliner = new shapes.BoxOutliner( document, "2px dotted red" ),
+		counter = new shapes.Text( document, "0", {
+			position: "absolute",
+			background: "white",
+			zIndex: "99999",
+			fontSize: "60px"
+		}),
+		noStyle = { color: "red" },
+		yesStyle = { color: "green" };
+	
+	function step(x) {
+		if ( x ) {
+			outliner.setBorderStyle( x[1] ? "2px dotted green" : "3px dotted red" );
+			outliner.show( x[0] );
+			
+			counter.setText( (i+1) + "" );
+			counter.setStyle({
+				color: x[1] ? "green" : "red",
+				fontWeight: x[1] ? "normal" : "bold",
+				top: 10 + document.body.scrollTop + "px",
+				left: 10 + document.body.scrollLeft + "px"
+			});
+			counter.show();
+		}
+		return x && x[2];
 	}
 	
-	var proxy = function() {
-		var t = end_time;
-		
-		end_time = now() + proxy.delay;
-		that = this;
-		args = arguments;
-		
-		if ( !timer_id || end_time < t ) {
-			timer_id && clearTimeout( timer_id );
-			timer_id = setTimeout( onTimeout, proxy.delay );
+	a.play = function() {
+		if ( interval_id || !a[i+1] ) {
+			return;
+		}
+		interval_id = window.setInterval(function() {
+			if ( step( a[++i] ) || !a[i+1] ) {
+				a.stop(1);
+			}
+		}, 100);
+	}
+	
+	a.stop = function( pause ) {
+		if ( interval_id ) {
+			window.clearInterval( interval_id );
+			interval_id = null;
+		}
+		if ( !pause ) {
+			a.length = 0;
+			i = -1;
+			outliner.hide();
+			counter.hide();
 		}
 	};
 	
-	proxy.delay = delay;
-	proxy.callback = callback;
-	
-	proxy.abort = function() {
-		if ( timer_id ) {
-			clearTimeout( timer_id );
-			timer_id = that = args = undef;
+	window.addEventListener('keydown', function(e) {
+		var c = e.keyCode;
+		
+		if ( c === 17 ) {
+			a.play();
+			return;
 		}
-	};
+		
+		interval_id && a.stop(1);
+		
+		if ( c === 39 && a[i+1] ) {
+			step( a[++i] );
+		}
+		
+		if ( c === 37 && a[i-1] ) {
+			step( a[--i] );
+		}
+	}, false);
 	
-	return proxy;
-}
+	return a;
+})();
 
 });

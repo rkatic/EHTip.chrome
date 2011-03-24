@@ -53,9 +53,44 @@ var Shape = Class({
 		}
 	},
 	
-	resetNode: noop,
-	_show: noop,
-	_hide: noop,
+	setStyle: function( style ) {
+		var s = this._content.style;
+		
+		for ( var name in style ) {
+			s[ name ] = style[ name ];
+		}
+	},
+	
+	resetNode: function( elem ) {
+		var s = elem.style;
+		s.border = "0";
+		s.color = "#000";
+		s.margin = "0";
+		s.padding = "0";
+		s.fontFamily = "arial, sans-serif";
+		s.fontSize = "13px";
+		s.fontStyle = "normal";
+		s.fontVariant = "normal";
+		s.fontWeight = "normal";
+		s.height = "auto";
+		s.lineHeight = "normal";
+		s.textAlign = "left";
+		s.width = "auto";
+		s.direction = "ltr";
+		s.visibility = "visible";
+		s.display = elem.tagName.toLowerCase() === "div" ? "block" : "inline";
+	},
+	
+	_show: function( text, style ) {
+		if ( !this.visible ) {
+			this._doc.body.appendChild( this._content );
+		}
+	},
+	
+	_hide: function() {
+		detach( this._content );
+	},
+	
 	_init: noop
 });
 
@@ -66,6 +101,20 @@ function detach( node ) {
 	node.parentNode && node.parentNode.removeChild( node );
 }
 
+
+exports.Text = Class( Shape, {
+	_init: function( doc, text, style ) {
+		this._content = this.createElement('div');
+		style && this.setStyle( style );
+		
+		this._textNode = doc.createTextNode( text );
+		this._content.appendChild( this._textNode );
+	},
+	
+	setText: function( text ) {
+		this._textNode.nodeValue = text;
+	}
+});
 
 exports.Tooltip = Class( Shape, {
 	_init: function() {
@@ -136,26 +185,6 @@ exports.Tooltip = Class( Shape, {
 		arrow.appendChild( outher );
 		
 		return arrow;
-	},
-	
-	resetNode: function( elem ) {
-		var s = elem.style;
-		s.border = "0";
-		s.color = "#000";
-		s.margin = "0";
-		s.padding = "0";
-		s.fontFamily = "arial, sans-serif";
-		s.fontSize = "13px";
-		s.fontStyle = "normal";
-		s.fontVariant = "normal";
-		s.fontWeight = "normal";
-		s.height = "auto";
-		s.lineHeight = "normal";
-		s.textAlign = "left";
-		s.width = "auto";
-		s.direction = "ltr";
-		s.visibility = "visible";
-		s.display = elem.tagName.toLowerCase() === "div" ? "block" : "inline";
 	},
 	
 	_show: function( rect, position, noArrow ) {
