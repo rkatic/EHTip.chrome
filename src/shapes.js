@@ -1,10 +1,13 @@
-module("shapes", function( exports, require ) {
+module("shapes", function( exports, require, module ) {
 
-var Shape = Class({
-	constructor: function( document ) {
-		this._doc = document;
-		this._init.apply( this, arguments );
-	},
+var Class = module.Class.bind( module );
+
+function Shape( document ) {
+	this._doc = document;
+	this._init.apply( this, arguments );
+}
+
+Class( Shape, {
 
 	show: function() {
 		this._show.apply( this, arguments );
@@ -104,8 +107,13 @@ function detach( node ) {
 	}
 }
 
+function Text() {
+	Shape.apply( this, arguments );
+}
 
-exports.Text = Class( Shape, {
+Class( Text, {
+	extends: Shape,
+
 	_init: function( doc, text, style ) {
 		this._content = this.createElement('div');
 		style && this.setStyle( style );
@@ -119,7 +127,13 @@ exports.Text = Class( Shape, {
 	}
 });
 
-exports.Tooltip = Class( Shape, {
+function Tooltip() {
+	Shape.apply( this, arguments );
+}
+
+Class( Tooltip, {
+	extends: Shape,
+
 	_init: function() {
 		var s;
 
@@ -292,7 +306,13 @@ exports.Tooltip = Class( Shape, {
 	}
 });
 
-exports.BoxOutliner = Class( Shape, {
+function BoxOutliner() {
+	Shape.apply( this, arguments );
+}
+
+Class( BoxOutliner, {
+	extends: Shape,
+
 	_init: function( doc, border ) {
 		var t = this.createElement('div');
 		var s = t.style;

@@ -1,9 +1,10 @@
 {
 	"name": "EHTip (bender)",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"minimum_chrome_version": "8",
 	"description": "__MSG_description__",
 	"update_url": "http://bender.fesb.hr/~robert/ehtip/crx/update.xml",
+	"manifest_version": 2,
 	"permissions": [
 		"tabs",
 		"unlimitedStorage"
@@ -17,7 +18,9 @@
 	"browser_action": {
 		"default_icon": "images/icon19.png"
 	},
-	"background_page": "bg.html",
+	"background": {
+		"page": "bg.html"
+	},
 	"options_page": "options.html",
 	"content_scripts": [
 		{
