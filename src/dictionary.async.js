@@ -9,6 +9,7 @@ module('dictionary.async', function( exports, require, module ) {
 		AsyncStorage = require("storage.async").AsyncStorage,
 
 		common = require("common"),
+		morfology = require("morfology"),
 		reNotWord = common.reNotWord,
 		reNotWordG = common.reNotWordG,
 		reWordJoinerG = common.reWordJoinerG,
@@ -50,6 +51,9 @@ module('dictionary.async', function( exports, require, module ) {
 		var i, l, parts, key, term, value;
 		var table = [], pairs = [], map, values;
 		var toKey = tokey, dump = JSON.stringify;
+		var morf = info.morf ?
+			morfology.Transformations.fromFile( './morf/' + info.morf + '.affx' ) :
+			null;
 
 		for ( i = 0, l = lines.length; i < l; ++i ) {
 			parts = lines[i].split( sep );
@@ -87,7 +91,7 @@ module('dictionary.async', function( exports, require, module ) {
 		}
 
 		if ( typeof dict === 'string' ) {
-			dict = new Dictionary( dict );
+			dict = new Dictionary( dict, morf );
 		}
 
 		dict._storage.transaction(
@@ -100,13 +104,13 @@ module('dictionary.async', function( exports, require, module ) {
 		);
 	}
 
-	var workerJob = jobs.createJobDealer( module.path, 'NEW_JOB', 5e3 );
-
-	if ( IN_WORKER ) {
-		jobs.addJobResolverTo( self, 'NEW_JOB', {
-			fillDictionaryWithFile: fillDictionaryWithFile
-		});
-	}
+	//var workerJob = jobs.createJobDealer( module.path, 'NEW_JOB', 5e3 );
+	//
+	//if ( IN_WORKER ) {
+	//	jobs.addJobResolverTo( self, 'NEW_JOB', {
+	//		fillDictionaryWithFile: fillDictionaryWithFile
+	//	});
+	//}
 
 	function cmpRows( a, b ) {
 		if ( a[0] < b[0] ) return -1;
@@ -152,13 +156,15 @@ module('dictionary.async', function( exports, require, module ) {
 				callback
 			);
 		},
-
+		//before it was calling a worker
 		fillFromFile: function( info, toReset, errorCallback, callback ) {
-			workerJob('fillDictionaryWithFile', this.name, info, toReset)
-				.on = {
-					done: callback,
-					fail: errorCallback
-				};
+			fillDictionaryWithFile(info.name, info, toReset);
+			callback();
+			//	workerJob('fillDictionaryWithFile', this.name, info, toReset)
+			//		.on = {
+			//			done: callback,
+			//			fail: errorCallback
+			//		};
 		},
 
 		free: function( errorCallback, callback ) {
